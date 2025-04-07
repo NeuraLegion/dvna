@@ -30,7 +30,7 @@ jobs:
           node-version: '22.x'
 
       - name: Install SecTesterJS dependencies
-        run: npm i --save=false @sectester/core @sectester/repeater @sectester/scan @sectester/runner
+        run: npm i --save-dev @sectester/core @sectester/repeater @sectester/scan @sectester/runner
 
       - name: Create vars.env file
         run: echo -e "MYSQL_USER=dvna\nMYSQL_DATABASE=dvna\nMYSQL_PASSWORD=passw0rd\nMYSQL_RANDOM_ROOT_PASSWORD=yes" > vars.env
