@@ -60,3 +60,7 @@ jobs:
           node --experimental-transform-types --experimental-strip-types --experimental-detect-module \
           --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning \
           --test-force-exit --test .brightsec/tests/*.test.ts
+
+      - name: Logs
+        if: always()
+        run: docker compose logs app
