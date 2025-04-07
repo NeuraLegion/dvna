@@ -24,10 +24,10 @@ jobs:
       - name: Install application dependencies
         run: npm install
 
-      - name: Set up Node.js 22.x
+      - name: Set up Node.js 23
         uses: actions/setup-node@v3
         with:
-          node-version: '22.x'
+          node-version: '23'
 
       - name: Install SecTesterJS dependencies
         run: npm i --save-dev @sectester/core @sectester/repeater @sectester/scan @sectester/runner
