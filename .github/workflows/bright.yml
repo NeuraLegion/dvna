@@ -24,14 +24,6 @@ jobs:
       - name: Install application dependencies
         run: npm install
 
-      - name: Set up Node.js 22.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: '22.x'
-
-      - name: Install SecTesterJS dependencies
-        run: npm install --save=false @sectester/core @sectester/repeater @sectester/scan @sectester/runner
-
       - name: Create vars.env file
         run: echo -e "MYSQL_USER=dvna\nMYSQL_DATABASE=dvna\nMYSQL_PASSWORD=passw0rd\nMYSQL_RANDOM_ROOT_PASSWORD=yes" > vars.env
 
@@ -47,6 +39,15 @@ jobs:
           done
           echo "Application did not start in time" && exit 1
 
+      - name: Set up Node.js 22.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.x'
+
+      - name: Install SecTesterJS dependencies
+        run: npm install --save=false @sectester/core @sectester/repeater @sectester/scan @sectester/runner
+        working-directory: .brightsec
+
       - name: Run security tests
         env:
           BRIGHT_HOSTNAME: ${{ vars.BRIGHT_HOSTNAME }}
@@ -54,4 +55,4 @@ jobs:
           BRIGHT_TOKEN: ${{ secrets.BRIGHT_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRIGHT_TARGET_URL: http://127.0.0.1:9090
-        run: node --experimental-transform-types --experimental-strip-types --experimental-detect-module --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --test-force-exit --test .brightsec/tests/*.test.ts
+        run: node --experimental-transform-types --experimental-strip-types --experimental-detect-module --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --test-force-exit --test .brightsec/tests/*.test.ts --test-concurrency=4
