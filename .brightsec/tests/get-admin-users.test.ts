@@ -3,7 +3,6 @@ import { SecRunner } from '@sectester/runner';
 import { Severity, AttackParamLocation, HttpMethod } from '@sectester/scan';
 
 const timeout = 40 * 60 * 1000;
-const signal = AbortSignal.timeout(timeout);
 const baseUrl = process.env.BRIGHT_TARGET_URL!;
 
 let runner!: SecRunner;
@@ -22,7 +21,7 @@ before(async c => {
 
   c.diagnostic(`${new Date().toJSON()} SecRunner initialized`);
 }, {
-  signal
+  timeout
 });
 
 after(async c => {
@@ -30,10 +29,10 @@ after(async c => {
   await runner.clear()
   c.diagnostic(`${new Date().toJSON()} SecRunner cleared`);
 }, {
-  signal
+  timeout
 });
 
-test('GET /admin/users', { signal, timeout }, async t => {
+test('GET /admin/users', { timeout }, async t => {
   t.diagnostic(`${new Date().toJSON()} Scanning GET /admin/users...`);
 
   await runner
