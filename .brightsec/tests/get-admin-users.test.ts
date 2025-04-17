@@ -2,7 +2,6 @@ import { test, before, after } from 'node:test';
 import { SecRunner } from '@sectester/runner';
 import { Severity, AttackParamLocation, HttpMethod } from '@sectester/scan';
 
-console.time('GET /admin/users');
 const timeout = 40 * 60 * 1000;
 const signal = AbortSignal.timeout(timeout);
 const baseUrl = process.env.BRIGHT_TARGET_URL!;
@@ -10,7 +9,7 @@ const baseUrl = process.env.BRIGHT_TARGET_URL!;
 let runner!: SecRunner;
 
 before(async c => {
-  c.diagnostic('Initializing SecRunner...');
+  c.diagnostic(`${new Date().toJSON()} Initializing SecRunner...`)
 
   runner = new SecRunner({
     hostname: process.env.BRIGHT_HOSTNAME!,
@@ -21,21 +20,21 @@ before(async c => {
 
   await runner.init();
 
-  c.diagnostic('SecRunner initialized');
+  c.diagnostic(`${new Date().toJSON()} SecRunner initialized`);
 }, {
   signal
 });
 
 after(async c => {
-  c.diagnostic('Clearing SecRunner...');
+  c.diagnostic(`${new Date().toJSON()} Clearing SecRunner...`);
   await runner.clear()
-  c.diagnostic('SecRunner cleared');
+  c.diagnostic(`${new Date().toJSON()} SecRunner cleared`);
 }, {
   signal
 });
 
 test('GET /admin/users', { signal }, async t => {
-  t.diagnostic('Scanning GET /admin/users...');
+  t.diagnostic(`${new Date().toJSON()} Scanning GET /admin/users...`);
 
   await runner
     .createScan({
@@ -50,5 +49,5 @@ test('GET /admin/users', { signal }, async t => {
       auth: process.env.BRIGHT_AUTH_ID
     });
 
-  t.diagnostic('GET /admin/users scan completed');
+  t.diagnostic(`${new Date().toJSON()} GET /admin/users scan completed`);
 });
