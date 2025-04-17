@@ -33,7 +33,7 @@ after(async c => {
   signal
 });
 
-test('GET /admin/users', { signal }, async t => {
+test('GET /admin/users', { signal, timeout }, async t => {
   t.diagnostic(`${new Date().toJSON()} Scanning GET /admin/users...`);
 
   await runner
