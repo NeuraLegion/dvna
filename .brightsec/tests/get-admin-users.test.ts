@@ -1,4 +1,4 @@
-import { test, before, after, di } from 'node:test';
+import { test, before, after } from 'node:test';
 import { SecRunner } from '@sectester/runner';
 import { Severity, AttackParamLocation, HttpMethod } from '@sectester/scan';
 
