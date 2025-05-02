@@ -6,6 +6,12 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+// Define an allowlist of URLs
+const allowlist = [
+    'https://example.com',
+    'https://another-trusted-site.com'
+];
+
 module.exports.userSearch = function (req, res) {
 	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
 	db.sequelize.query(query, {
@@ -185,7 +191,13 @@ module.exports.userEditSubmit = function (req, res) {
 
 module.exports.redirect = function (req, res) {
 	if (req.query.url) {
-		res.redirect(req.query.url)
+        // Validate the URL against the allowlist
+        const url = new URL(req.query.url);
+        if (allowlist.includes(url.origin)) {
+            res.redirect(req.query.url);
+        } else {
+            res.status(400).send('Invalid redirect URL');
+        }
 	} else {
 		res.send('invalid redirect url')
 	}
