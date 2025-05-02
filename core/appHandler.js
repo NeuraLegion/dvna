@@ -192,7 +192,7 @@ module.exports.redirect = function (req, res) {
 	if (req.query.url && allowedRedirectUrls.includes(req.query.url)) {
 		res.redirect(req.query.url)
 	} else {
-		res.send('invalid redirect url')
+		res.status(400).send('Invalid redirect URL')
 	}
 }
 
