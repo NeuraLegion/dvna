@@ -1,0 +1,151 @@
+name: Bright
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Annotate Checkout repository Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="checkout-repository"
+        echo "::notice title=Checkout repository Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Checkout repository Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Set up Node.js 6.x for application dependencies
+      uses: actions/setup-node@v3
+      with:
+        node-version: '6.x'
+    - name: Annotate Set up Node.js 6.x for application dependencies Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="setup-nodejs-6x"
+        echo "::notice title=Set up Node.js 6.x for application dependencies Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Set up Node.js 6.x for application dependencies Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Install application dependencies
+      run: npm install
+    - name: Annotate Install application dependencies Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="install-application-dependencies"
+        echo "::notice title=Install application dependencies Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Install application dependencies Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Create vars.env file
+      run: |
+        echo "MYSQL_DATABASE=dvna" >> vars.env
+        echo "MYSQL_PASSWORD=passw0rd" >> vars.env
+        echo "MYSQL_RANDOM_ROOT_PASSWORD=yes" >> vars.env
+        echo "MYSQL_USER=dvna" >> vars.env
+    - name: Annotate Create vars.env file Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="create-vars-env-file"
+        echo "::notice title=Create vars.env file Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Create vars.env file Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Start application
+      run: docker compose up --wait
+    - name: Annotate Start application Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="start-application"
+        echo "::notice title=Start application Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Start application Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Verify application readiness
+      run: |
+        until nc -zv 127.0.0.1 9090; do
+          echo "Waiting for application to be ready..."
+          sleep 5
+        done
+    - name: Annotate Verify application readiness Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="verify-application-readiness"
+        echo "::notice title=Verify application readiness Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Verify application readiness Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Set up Node.js 22.x for SecTesterJS
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22.x'
+    - name: Annotate Set up Node.js 22.x for SecTesterJS Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="setup-nodejs-22x"
+        echo "::notice title=Set up Node.js 22.x for SecTesterJS Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Set up Node.js 22.x for SecTesterJS Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Install SecTesterJS dependencies
+      run: npm i --save=false --prefix .brightsec @sectester/core @sectester/repeater @sectester/scan @sectester/runner @sectester/reporter
+    - name: Annotate Install SecTesterJS dependencies Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="install-sectesterjs-dependencies"
+        echo "::notice title=Install SecTesterJS dependencies Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Install SecTesterJS dependencies Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
+
+    - name: Run security tests
+      env:
+        BRIGHT_HOSTNAME: ${{ vars.BRIGHT_HOSTNAME }}
+        BRIGHT_PROJECT_ID: ${{ vars.BRIGHT_PROJECT_ID }}
+        BRIGHT_AUTH_ID: ${{ vars.BRIGHT_AUTH_ID }}
+        BRIGHT_TOKEN: ${{ secrets.BRIGHT_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRIGHT_TARGET_URL: http://127.0.0.1:9090
+      run: node --experimental-transform-types --experimental-strip-types --experimental-detect-module --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --test-force-exit --test-concurrency=4 --test .brightsec/tests/*.test.ts
+    - name: Annotate Run security tests Result
+      if: always()
+      run: |
+        exit_code=$?
+        step_id="run-security-tests"
+        echo "::notice title=Run security tests Result::step_id=$step_id,exit_code=$exit_code"
+        if [ $exit_code -ne 0 ]; then
+          echo "::error title=Run security tests Failed::step_id=$step_id,exit_code=$exit_code"
+        fi
+        exit $exit_code
