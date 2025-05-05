@@ -184,10 +184,21 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
+	const allowedDomains = ['example.com', 'another-allowed-domain.com'];
+
 	if (req.query.url) {
-		res.redirect(req.query.url)
+		try {
+			const url = new URL(req.query.url);
+			if (allowedDomains.includes(url.hostname)) {
+				res.redirect(req.query.url);
+			} else {
+				res.status(400).send('Redirect to this domain is not allowed.');
+			}
+		} catch (e) {
+			res.status(400).send('Invalid URL format.');
+		}
 	} else {
-		res.send('invalid redirect url')
+		res.send('Invalid redirect URL');
 	}
 }
 
