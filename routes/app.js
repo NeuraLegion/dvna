@@ -39,6 +39,20 @@ function isHttpsRequest(req) {
 	return !!(req.secure || req.headers['x-forwarded-proto'] === 'https')
 }
 
+function getContentSecurityPolicy() {
+	return "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+}
+
+function applySecurityHeaders(req, res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
+
+	if (isHttpsRequest(req) && !res.getHeader('Strict-Transport-Security')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
+}
+
 function setCorsHeaders(req, res, next) {
 	var requestOrigin = normalizeOrigin(req.get('Origin'))
 	var allowedOrigins = getAllowedOrigins()
@@ -67,14 +81,7 @@ function setCorsHeaders(req, res, next) {
 }
 
 function setSecurityHeaders(req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-
-	if (isHttpsRequest(req) && !res.getHeader('Strict-Transport-Security')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
-
+	applySecurityHeaders(req, res)
 	return next()
 }
 
@@ -85,17 +92,7 @@ function setResponseFrameProtection(req, res, next) {
 	var originalSend = res.send
 
 	function ensureProtection() {
-		if (!res.getHeader('X-Frame-Options')) {
-			res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-		}
-
-		if (!res.getHeader('Content-Security-Policy')) {
-			res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-		}
-
-		if (isHttpsRequest(req) && !res.getHeader('Strict-Transport-Security')) {
-			res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-		}
+		applySecurityHeaders(req, res)
 	}
 
 	res.render = function () {
