@@ -3,22 +3,6 @@ var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 var serverConfig = require('../config/server')
 
-function setSecurityHeaders(req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-
-	// HSTS must be set for HTTPS responses so browsers enforce secure-only
-	// access on subsequent requests.
-	if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
-
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-	}
-	return next()
-}
-
 function normalizeOrigin(origin) {
 	if (typeof origin !== 'string') {
 		return ''
@@ -44,6 +28,30 @@ function getAllowedOrigins() {
 
 		return /^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(origin)
 	})
+}
+
+function setSecurityHeaders(req, res, next) {
+	// Apply headers up-front for every /app route so responses from handlers
+	// that render, redirect, or send early still carry the protection header.
+	if (!res.getHeader('X-Frame-Options')) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	}
+
+	if (!res.getHeader('X-Content-Type-Options')) {
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+	}
+
+	// HSTS must be set for HTTPS responses so browsers enforce secure-only
+	// access on subsequent requests.
+	if ((req.secure || req.headers['x-forwarded-proto'] === 'https') && !res.getHeader('Strict-Transport-Security')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
+
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	}
+
+	return next()
 }
 
 function setCorsHeaders(req, res, next) {
