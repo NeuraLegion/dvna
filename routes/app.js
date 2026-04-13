@@ -44,9 +44,17 @@ function getContentSecurityPolicy() {
 }
 
 function applySecurityHeaders(req, res) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
+	if (!res.getHeader('X-Frame-Options')) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	}
+
+	if (!res.getHeader('X-Content-Type-Options')) {
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+	}
+
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
+	}
 
 	if (isHttpsRequest(req) && !res.getHeader('Strict-Transport-Security')) {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
@@ -74,6 +82,7 @@ function setCorsHeaders(req, res, next) {
 	}
 
 	if (req.method === 'OPTIONS') {
+		applySecurityHeaders(req, res)
 		return res.sendStatus(204)
 	}
 
@@ -166,6 +175,7 @@ function safeErrorHandler(err, req, res, next) {
 
 	// Never leak stack traces or DB internals to the client.
 	console.error('Unhandled application error:', err)
+	applySecurityHeaders(req, res)
 	res.status(500).render('error', {
 		message: 'An unexpected error occurred.'
 	})
