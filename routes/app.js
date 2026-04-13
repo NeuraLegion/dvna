@@ -29,6 +29,11 @@ module.exports = function () {
         next()
     }
 
+    function setNoSniffHeader(req, res, next) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        next()
+    }
+
     function setHstsHeader(req, res, next) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         next()
@@ -37,6 +42,7 @@ module.exports = function () {
     router.use(setHstsHeader)
     router.use(setFrameOptionsHeader)
     router.use(setContentSecurityPolicyHeader)
+    router.use(setNoSniffHeader)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
