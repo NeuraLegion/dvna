@@ -4,6 +4,11 @@ var authHandler = require('../core/authHandler')
 var serverConfig = require('../config/server')
 
 module.exports = function (passport) {
+	router.use(function (req, res, next) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+		next()
+	})
+
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
 	})
@@ -13,29 +18,6 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
-		res.render('vulnerabilities/layout', {
-			vuln: req.params.vuln,
-			vuln_title: vulnDict[req.params.vuln],
-			vuln_scenario: req.params.vuln + '/scenario',
-			vuln_description: req.params.vuln + '/description',
-			vuln_reference: req.params.vuln + '/reference',
-			vulnerabilities:vulnDict
-		}, function (err, html) {
-			if (err) {
-				console.log(err)
-				res.status(404).send('404')
-			} else {
-				if (serverConfig.corsOrigin) {
-					res.setHeader('Vary', 'Origin')
-					res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
-				}
-				res.send(html)
-			}
-		})
-	})
-
-	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
 		res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -45,7 +27,34 @@ module.exports = function (passport) {
 			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
 		}
 
-		res.render('learn',{vulnerabilities:vulnDict})
+		res.render('vulnerabilities/layout', {
+			vuln: req.params.vuln,
+			vuln_title: vulnDict[req.params.vuln],
+			vuln_scenario: req.params.vuln + '/scenario',
+			vuln_description: req.params.vuln + '/description',
+			vuln_reference: req.params.vuln + '/reference',
+			vulnerabilities: vulnDict
+		}, function (err, html) {
+			if (err) {
+				console.log(err)
+				res.status(404).send('404')
+			} else {
+				res.send(html)
+			}
+		})
+	})
+
+	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+
+		if (serverConfig.corsOrigin) {
+			res.setHeader('Vary', 'Origin')
+			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
+		}
+
+		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
 	router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
@@ -54,11 +63,10 @@ module.exports = function (passport) {
 
 	router.get('/logout', function (req, res) {
 		req.logout();
-		res.redirect('/');
+		res.redirect('/')
 	})
 
 	router.get('/forgotpw', function (req, res) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
 		res.setHeader('X-Content-Type-Options', 'nosniff')
