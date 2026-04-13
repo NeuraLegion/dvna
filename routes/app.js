@@ -1,14 +1,40 @@
 var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
+var serverConfig = require('../config/server')
 
 function isSecureRequest(req) {
 	return req.secure || req.headers['x-forwarded-proto'] === 'https'
 }
 
+function getAllowedOrigins() {
+	var configured = serverConfig.corsOrigin || ''
+
+	return configured.split(',').map(function (origin) {
+		return origin.trim()
+	}).filter(function (origin) {
+		return origin.length > 0
+	})
+}
+
+function setCorsHeaders(req, res) {
+	var requestOrigin = req.headers.origin
+	var allowedOrigins = getAllowedOrigins()
+
+	if (!requestOrigin || allowedOrigins.length === 0) {
+		return
+	}
+
+	if (allowedOrigins.indexOf(requestOrigin) !== -1) {
+		res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+		res.setHeader('Vary', 'Origin')
+	}
+}
+
 function setSecurityHeaders(req, res, next) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
+	setCorsHeaders(req, res)
 
 	if (isSecureRequest(req)) {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
