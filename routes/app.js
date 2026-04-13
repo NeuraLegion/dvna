@@ -26,6 +26,11 @@ function setFrameProtectionHeaders(res) {
 }
 
 module.exports = function () {
+    router.use(function (req, res, next) {
+        setFrameProtectionHeaders(res)
+        next()
+    })
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
@@ -88,7 +93,10 @@ module.exports = function () {
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
+    router.post('/ping', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.ping(req, res)
+    })
 
     router.options('/products', authHandler.isAuthenticated, function (req, res) {
         setCorsHeaders(req, res)
