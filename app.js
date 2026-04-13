@@ -1,29 +1,11 @@
 var express = require('express')
-var serverConfig = require('./config/server')
 var app = express()
+var serverConfig = require('./config/server')
 
-app.use(function (req, res, next) {
-    var requestOrigin = req.headers.origin
-    var allowedOrigin = serverConfig.corsOrigin
-
-    if (allowedOrigin) {
-        res.setHeader('Vary', 'Origin')
-
-        if (requestOrigin && requestOrigin === allowedOrigin) {
-            res.setHeader('Access-Control-Allow-Origin', requestOrigin)
-        } else if (!requestOrigin) {
-            res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
-        }
-
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    }
-
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(204)
-    }
-
-    next()
-})
+// Enforce HTTPS-aware cookie settings at the app level so any session cookie
+// configured elsewhere is protected in production deployments.
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1)
+}
 
 module.exports = app
