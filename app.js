@@ -1,63 +1,63 @@
-var express = require('express')
 var path = require('path')
-var favicon = require('serve-favicon')
-var logger = require('morgan')
+var express = require('express')
 var cookieParser = require('cookie-parser')
-var bodyParser = require('body-parser')
-var flash = require('connect-flash')
-var fileUpload = require('express-fileupload')
+var logger = require('morgan')
 var session = require('express-session')
-var csurf = require('csurf')
 var helmet = require('helmet')
-
-var index = require('./routes/index')
-var appRoutes = require('./routes/app')
-var apiRoutes = require('./routes/api')
+var hpp = require('hpp')
+var flash = require('connect-flash')
+var lusca = require('lusca')
+var config = require('./config/server')
 
 var app = express()
 
-// Trust reverse proxy so secure settings work correctly when deployed behind a proxy.
+app.disable('x-powered-by')
 app.set('trust proxy', 1)
-
-// Enforce core security headers globally before any route handlers run.
-// Helmet provides a tested default security baseline; we explicitly set HSTS
-// with the required policy to ensure the header is present on all responses.
-app.use(helmet())
-app.use(helmet.hsts({
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: false
-}))
-
-app.use(function (req, res, next) {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    next()
-})
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
 
 app.use(logger('dev'))
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
-app.use(fileUpload())
-app.use(express.static(path.join(__dirname, 'public')))
-app.use(flash())
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'change-me-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: true
-    }
+	secret: config.sessionSecret,
+	resave: false,
+	saveUninitialized: false,
+	cookie: {
+		httpOnly: true,
+		secure: config.secureCookies,
+		sameSite: 'lax'
+	}
 }))
-app.use(csurf())
+app.use(flash())
+app.use(hpp())
+app.use(helmet({
+	contentSecurityPolicy: {
+		useDefaults: true,
+		directives: {
+			defaultSrc: ["'self'"],
+			scriptSrc: ["'self'", 'https://maxcdn.bootstrapcdn.com', 'https://cdnjs.cloudflare.com'],
+			styleSrc: ["'self'", "'unsafe-inline'", 'https://maxcdn.bootstrapcdn.com'],
+			imgSrc: ["'self'", 'data:'],
+			fontSrc: ["'self'", 'https://maxcdn.bootstrapcdn.com', 'data:'],
+			objectSrc: ["'none'"],
+			baseUri: ["'self'"],
+			frameAncestors: ["'self'"]
+		}
+	},
+	frameguard: { action: 'sameorigin' },
+	xssFilter: false,
+	hsts: {
+		maxAge: 31536000,
+		includeSubDomains: true
+	}
+}))
+app.use(lusca.csrf())
+app.use(express.static(path.join(__dirname, 'public')))
 
-app.use('/', index())
-app.use('/app', appRoutes())
-app.use('/api', apiRoutes())
-
-// error handlers omitted for brevity
+app.use('/', require('./routes/index')())
+app.use('/app', require('./routes/app')())
+app.use('/api', require('./routes/api')())
 
 module.exports = app
