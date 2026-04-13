@@ -94,7 +94,7 @@ module.exports = function () {
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
+    router.post('/modifyproduct', authHandler.isAuthenticated, setContentSecurityPolicyHeader, function (req, res, next) {
         setFrameOptionsHeader(req, res, next)
     }, appHandler.modifyProductSubmit)
 
