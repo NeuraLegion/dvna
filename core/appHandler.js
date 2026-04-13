@@ -1,13 +1,27 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-const exec = require('child_process').exec;
+const execFile = require('child_process').execFile;
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function isValidPingTarget(address) {
+	if (typeof address !== 'string') {
+		return false
+	}
+	address = address.trim()
+	if (!address) {
+		return false
+	}
+	// Allow only a conservative set of safe host/IP characters.
+	// This prevents shell metacharacters and command injection while still
+	// permitting common hostnames, IPv4/IPv6 literals, and shortnames.
+	return /^[a-zA-Z0-9.:-]+$/.test(address)
+}
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
 		model: db.User
 	}).then(user => {
@@ -36,8 +50,16 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
-		output = stdout + stderr
+	const address = req.body.address
+
+	if (!isValidPingTarget(address)) {
+		return res.render('app/ping', {
+			output: 'Invalid address'
+		})
+	}
+
+	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
+		var output = stdout + stderr
 		res.render('app/ping', {
 			output: output
 		})
