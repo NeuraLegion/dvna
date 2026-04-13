@@ -3,10 +3,6 @@ var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 var serverConfig = require('../config/server')
 
-function isSecureRequest(req) {
-	return req.secure || req.headers['x-forwarded-proto'] === 'https'
-}
-
 function getAllowedOrigins() {
 	var configured = serverConfig.corsOrigin || ''
 
@@ -35,11 +31,8 @@ function setCorsHeaders(req, res) {
 function setSecurityHeaders(req, res, next) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 	setCorsHeaders(req, res)
-
-	if (isSecureRequest(req)) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
 
 	var csp = "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
 	if (!res.getHeader('Content-Security-Policy')) {
