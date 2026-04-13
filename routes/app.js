@@ -13,6 +13,14 @@ function setSecurityHeaders(req, res, next) {
 	return next()
 }
 
+function normalizeOrigin(origin) {
+	if (typeof origin !== 'string') {
+		return ''
+	}
+
+	return origin.trim()
+}
+
 function getAllowedOrigins() {
 	var configured = ''
 	if (serverConfig && typeof serverConfig.corsOrigin === 'string') {
@@ -21,21 +29,31 @@ function getAllowedOrigins() {
 		configured = process.env.CORS_ORIGIN
 	}
 
-	var origins = configured.split(',').map(function (origin) {
-		return origin.trim()
+	return configured.split(',').map(function (origin) {
+		return normalizeOrigin(origin)
 	}).filter(function (origin) {
-		return origin.length > 0 && origin !== '*'
-	})
+		if (!origin || origin === '*') {
+			return false
+		}
 
-	return origins
+		return /^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(origin)
+	})
 }
 
 function setCorsHeaders(req, res, next) {
-	var requestOrigin = req.get('Origin')
+	var requestOrigin = normalizeOrigin(req.get('Origin'))
 	var allowedOrigins = getAllowedOrigins()
+	var matchedOrigin = ''
 
-	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
-		res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+	for (var i = 0; i < allowedOrigins.length; i++) {
+		if (allowedOrigins[i] === requestOrigin) {
+			matchedOrigin = allowedOrigins[i]
+			break
+		}
+	}
+
+	if (matchedOrigin) {
+		res.setHeader('Access-Control-Allow-Origin', matchedOrigin)
 		res.setHeader('Vary', 'Origin')
 		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
 		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
