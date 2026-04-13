@@ -1,26 +1,6 @@
 var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
-var serverConfig = require('../config/server')
-
-function getAllowedOrigins() {
-	return (serverConfig.corsOrigin || '')
-		.split(',')
-		.map(function (origin) {
-			return origin.trim()
-		})
-		.filter(function (origin) {
-			return origin.length > 0
-		})
-}
-
-function isAllowedOrigin(requestOrigin) {
-	if (!requestOrigin) {
-		return false
-	}
-
-	return getAllowedOrigins().indexOf(requestOrigin) !== -1
-}
 
 function setSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
@@ -40,14 +20,6 @@ function clearSessionCookie(res) {
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
 		setSecurityHeaders(res)
-
-		var requestOrigin = req.headers.origin
-		if (isAllowedOrigin(requestOrigin)) {
-			res.setHeader('Vary', 'Origin')
-			res.setHeader('Access-Control-Allow-Origin', requestOrigin)
-			res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-			res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-		}
 
 		if (req.method === 'OPTIONS') {
 			return res.sendStatus(204)
