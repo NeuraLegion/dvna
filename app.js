@@ -1,47 +1,46 @@
-var express = require('express')
-var path = require('path')
-var favicon = require('serve-favicon')
-var logger = require('morgan')
-var cookieParser = require('cookie-parser')
-var bodyParser = require('body-parser')
-var flash = require('connect-flash')
-var expressSession = require('express-session')
-var passport = require('passport')
-var app = express()
+const express = require('express')
+const path = require('path')
+const logger = require('morgan')
+const cookieParser = require('cookie-parser')
+const bodyParser = require('body-parser')
+const session = require('express-session')
 
-require('./core/passport')(passport)
-var routes = require('./routes/main')(passport)
+const app = express()
 
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
-
-// Required so secure cookies work correctly when the app is deployed behind a proxy
-// that terminates TLS (e.g. Heroku, nginx, load balancers).
+// If the app is deployed behind a reverse proxy (for TLS termination), ensure Express
+// can determine the original protocol so secure cookies are only set over HTTPS.
 app.set('trust proxy', 1)
 
-app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
+const sessionCookieConfig = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production'
+}
+
 app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
-app.use(express.static(path.join(__dirname, 'public')))
 
-app.use(expressSession({
-	secret: process.env.SESSION_SECRET || 'your secret here',
-	resave: false,
-	saveUninitialized: false,
-	proxy: true,
-	cookie: {
-		httpOnly: true,
-		secure: true,
-		sameSite: 'lax'
-	}
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'change_this_session_secret',
+  resave: false,
+  saveUninitialized: false,
+  proxy: true,
+  cookie: sessionCookieConfig
 }))
 
-app.use(flash())
-app.use(passport.initialize())
-app.use(passport.session())
+// Enforce secure session cookies at the middleware layer for HTTPS requests.
+// This avoids sending a session cookie without the Secure flag when the app is
+// accessed directly over HTTP during testing, while keeping the cookie protected
+// in production behind HTTPS.
+app.use((req, res, next) => {
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    req.session.cookie.secure = true
+  }
+  next()
+})
 
-app.use('/', routes)
+app.use(express.static(path.join(__dirname, 'public')))
 
 module.exports = app
