@@ -53,6 +53,7 @@ module.exports = function () {
 
     router.get('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         appHandler.modifyProduct(req, res)
     })
 
