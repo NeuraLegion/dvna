@@ -25,7 +25,13 @@ function setCorsHeaders(req, res) {
 }
 
 function isHttpsRequest(req) {
-	return req.secure || req.get('x-forwarded-proto') === 'https'
+	var forwardedProto = req.get('x-forwarded-proto')
+
+	if (typeof forwardedProto === 'string') {
+		forwardedProto = forwardedProto.split(',')[0].trim()
+	}
+
+	return req.secure || forwardedProto === 'https'
 }
 
 function addSecureFlagToSetCookieHeader(setCookieHeader) {
@@ -60,10 +66,17 @@ function getContentSecurityPolicy() {
 	return "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
 }
 
-function setSecurityHeaders(res) {
+function setHstsHeader(res) {
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+}
+
+function setSecurityHeaders(req, res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+
+	if (isHttpsRequest(req)) {
+		setHstsHeader(res)
+	}
 
 	if (!res.getHeader('Content-Security-Policy')) {
 		res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
@@ -115,7 +128,7 @@ function isSafeRedirectTarget(url) {
 module.exports = function () {
 	router.use(function (req, res, next) {
 		setCorsHeaders(req, res)
-		setSecurityHeaders(res)
+		setSecurityHeaders(req, res)
 
 		if (isHttpsRequest(req)) {
 			var originalSetHeader = res.setHeader.bind(res)
@@ -156,7 +169,7 @@ module.exports = function () {
 	})
 
 	router.post('/ping', authHandler.isAuthenticated, function (req, res) {
-		setSecurityHeaders(res)
+		setSecurityHeaders(req, res)
 		res.render('app/ping', {
 			output: null
 		})
