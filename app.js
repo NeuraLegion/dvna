@@ -1,56 +1,56 @@
 var express = require('express')
-var path = require('path')
-var cookieParser = require('cookie-parser')
-var logger = require('morgan')
-var createError = require('http-errors')
-
-var indexRouter = require('./routes/index')
-var appRouter = require('./routes/app')
-var usersRouter = require('./routes/users')
-var apiRouter = require('./routes/api')
-
 var app = express()
+var path = require('path')
+var fs = require('fs')
+var bodyParser = require('body-parser')
+var methodOverride = require('method-override')
+var cookieParser = require('cookie-parser')
+var session = require('express-session')
+var flash = require('connect-flash')
+var helmet = require('helmet')
 
-// Trust reverse proxies so secure headers and redirects work correctly
-// when HTTPS is terminated upstream (for example, at a load balancer).
-app.set('trust proxy', 1)
+var config = require('./config/config')
+var routes = require('./routes')
+
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
+
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(session({
+    secret: config.sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: false
+    }
+}))
+app.use(flash())
+app.use(methodOverride())
+
+app.use(helmet({
+    frameguard: { action: 'sameorigin' },
+    noSniff: true,
+    referrerPolicy: { policy: 'same-origin' }
+}))
 
 app.use(function (req, res, next) {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     res.setHeader('X-Content-Type-Options', 'nosniff')
 
-    // Send HSTS only when the request is secure. When the app is behind a
-    // proxy, trust proxy allows req.secure to reflect the original protocol.
-    if (req.secure) {
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
+
+    if (!res.getHeader('Content-Security-Policy')) {
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
     }
 
     next()
 })
 
-app.use(logger('dev'))
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
-app.use(cookieParser())
-app.use(express.static(path.join(__dirname, 'public')))
-
-app.use('/', indexRouter)
-app.use('/app', appRouter())
-app.use('/users', usersRouter)
-app.use('/api', apiRouter)
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404))
-})
-
-// error handler
-app.use(function(err, req, res, next) {
-  res.locals.message = err.message
-  res.locals.error = req.app.get('env') === 'development' ? err : {}
-
-  res.status(err.status || 500)
-  res.render('error')
-})
+app.use('/', routes)
 
 module.exports = app
