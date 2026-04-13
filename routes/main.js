@@ -1,6 +1,7 @@
 var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
+var serverConfig = require('../config/server')
 
 module.exports = function (passport) {
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
@@ -24,6 +25,10 @@ module.exports = function (passport) {
 				console.log(err)
 				res.status(404).send('404')
 			} else {
+				if (serverConfig.corsOrigin) {
+					res.setHeader('Vary', 'Origin')
+					res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
+				}
 				res.send(html)
 			}
 		})
@@ -34,6 +39,12 @@ module.exports = function (passport) {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
 		res.setHeader('X-Content-Type-Options', 'nosniff')
+
+		if (serverConfig.corsOrigin) {
+			res.setHeader('Vary', 'Origin')
+			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
+		}
+
 		res.render('learn',{vulnerabilities:vulnDict})
 	})
 

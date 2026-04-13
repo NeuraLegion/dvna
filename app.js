@@ -1,11 +1,20 @@
 var express = require('express')
-var app = express()
 var serverConfig = require('./config/server')
+var app = express()
 
 app.use(function (req, res, next) {
-    if (serverConfig.corsOrigin) {
-        res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
+    var requestOrigin = req.headers.origin
+    var allowedOrigin = serverConfig.corsOrigin
+
+    if (allowedOrigin) {
         res.setHeader('Vary', 'Origin')
+
+        if (requestOrigin && requestOrigin === allowedOrigin) {
+            res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+        } else if (!requestOrigin) {
+            res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+        }
+
         res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     }
