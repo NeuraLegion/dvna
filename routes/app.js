@@ -1,16 +1,28 @@
 var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
-var serverConfig = require('../config/server')
+
+function setSecurityHeaders(req, res, next) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	}
+	return next()
+}
 
 function getAllowedOrigins() {
-	var configured = serverConfig.corsOrigin || ''
-
-	return configured.split(',').map(function (origin) {
+	var configured = ''
+	if (process.env.CORS_ORIGIN) {
+		configured = process.env.CORS_ORIGIN
+	}
+	var origins = configured.split(',').map(function (origin) {
 		return origin.trim()
 	}).filter(function (origin) {
 		return origin.length > 0
 	})
+	return origins
 }
 
 function setCorsHeaders(req, res) {
@@ -28,19 +40,6 @@ function setCorsHeaders(req, res) {
 	}
 }
 
-function setSecurityHeaders(req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	setCorsHeaders(req, res)
-
-	var csp = "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', csp)
-	}
-	return next()
-}
-
 function isAllowedRedirectTarget(url) {
 	if (typeof url !== 'string') {
 		return false
@@ -51,8 +50,6 @@ function isAllowedRedirectTarget(url) {
 		return false
 	}
 
-	// Allow only same-site relative paths and explicitly approved destinations.
-	// This blocks protocol-relative URLs, absolute external URLs, and javascript/data schemes.
 	var allowedTargets = [
 		'/learn',
 		'/app/learn',
