@@ -1,35 +1,45 @@
 var express = require('express')
-var path = require('path')
-var cookieParser = require('cookie-parser')
-var bodyParser = require('body-parser')
 var session = require('express-session')
-var flash = require('connect-flash')
-var routes = require('./routes')
 
 var app = express()
 
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
+app.set('trust proxy', 1)
 
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(cookieParser())
+function isSecureRequest(req) {
+	if (req.secure) {
+		return true
+	}
+
+	var forwardedProto = req.get('X-Forwarded-Proto')
+	if (!forwardedProto) {
+		return false
+	}
+
+	return forwardedProto.split(',')[0].trim().toLowerCase() === 'https'
+}
+
 app.use(session({
 	secret: process.env.SESSION_SECRET || 'change-me',
 	resave: false,
-	saveUninitialized: false
+	saveUninitialized: false,
+	proxy: true,
+	cookie: {
+		httpOnly: true,
+		sameSite: 'lax',
+		secure: true
+	}
 }))
-app.use(flash())
 
-// Set security headers for every response, including routes that may bypass
-// feature-specific middleware or be served through alternate code paths.
 app.use(function (req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	if (req.session && req.session.cookie && !isSecureRequest(req)) {
+		res.clearCookie('connect.sid', {
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: false
+		})
+	}
+
 	next()
 })
-
-app.use('/', routes())
 
 module.exports = app
