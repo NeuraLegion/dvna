@@ -30,6 +30,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 		res.render('learn',{vulnerabilities:vulnDict})
 	})
 
