@@ -1,22 +1,29 @@
 var express = require('express')
-var session = require('express-session')
+var path = require('path')
+var cookieParser = require('cookie-parser')
+var bodyParser = require('body-parser')
+var compression = require('compression')
+
 var app = express()
-var serverConfig = require('./config/server')
 
-if (serverConfig.trustProxy) {
-    app.set('trust proxy', 1)
-}
+app.disable('x-powered-by')
 
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'change-this-secret',
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
-    cookie: {
-        secure: serverConfig.cookieSecure,
-        httpOnly: true,
-        sameSite: 'lax'
+app.use(function (req, res, next) {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    next()
+})
+
+app.use(compression())
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+
+app.use(function (req, res, next) {
+    if (req.secure || req.get('X-Forwarded-Proto') === 'https') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
-}))
+    next()
+})
 
 module.exports = app

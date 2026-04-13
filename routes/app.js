@@ -38,6 +38,7 @@ module.exports = function () {
         setCorsHeaders(req, res)
         setStrictTransportSecurity(req, res)
         setFrameProtectionHeaders(res)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
 
         if (req.path && req.path.indexOf('/app') === 0) {
             setAppPageContentSecurityPolicy(res)
@@ -55,6 +56,9 @@ module.exports = function () {
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         res.render('app/usersearch', {
             output: null
         })
@@ -64,10 +68,6 @@ module.exports = function () {
         res.render('app/ping', {
             output: null
         })
-    })
-
-    router.post('/ping', authHandler.isAuthenticated, function (req, res) {
-        appHandler.ping(req, res)
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
