@@ -29,6 +29,27 @@ function setSecurityHeaders(res) {
 	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
 }
 
+function isSecureRequest(req) {
+	if (req.secure) {
+		return true
+	}
+
+	var forwardedProto = req.get('X-Forwarded-Proto')
+	if (!forwardedProto) {
+		return false
+	}
+
+	return forwardedProto.split(',')[0].trim().toLowerCase() === 'https'
+}
+
+function clearSessionCookie(req, res) {
+	res.clearCookie('connect.sid', {
+		httpOnly: true,
+		secure: isSecureRequest(req),
+		sameSite: 'lax'
+	})
+}
+
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
 		setSecurityHeaders(res)
@@ -89,21 +110,13 @@ module.exports = function (passport) {
 
 		if (req.session) {
 			req.session.destroy(function () {
-				res.clearCookie('connect.sid', {
-					httpOnly: true,
-					secure: true,
-					sameSite: 'lax'
-				})
+				clearSessionCookie(req, res)
 				res.redirect('/')
 			})
 			return
 		}
 
-		res.clearCookie('connect.sid', {
-			httpOnly: true,
-			secure: true,
-			sameSite: 'lax'
-		})
+		clearSessionCookie(req, res)
 		res.redirect('/')
 	})
 
