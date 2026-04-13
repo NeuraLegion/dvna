@@ -122,10 +122,11 @@ module.exports.modifyProductSubmit = function (req, res) {
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
+			console.error('modifyProductSubmit failed:', err)
 			output = {
 				product: product
 			}
-			req.flash('danger',err)
+			req.flash('danger', 'Unable to save product. Please try again.')
 			res.render('app/modifyproduct', {
 				output: output
 			})
