@@ -3,6 +3,25 @@ var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 var serverConfig = require('../config/server')
 
+function getAllowedOrigins() {
+	return (serverConfig.corsOrigin || '')
+		.split(',')
+		.map(function (origin) {
+			return origin.trim()
+		})
+		.filter(function (origin) {
+			return origin.length > 0
+		})
+}
+
+function isAllowedOrigin(requestOrigin) {
+	if (!requestOrigin) {
+		return false
+	}
+
+	return getAllowedOrigins().indexOf(requestOrigin) !== -1
+}
+
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
 		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
@@ -10,9 +29,16 @@ module.exports = function (passport) {
 		res.setHeader('X-Content-Type-Options', 'nosniff')
 		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
 
-		if (serverConfig.corsOrigin) {
+		var requestOrigin = req.headers.origin
+		if (isAllowedOrigin(requestOrigin)) {
 			res.setHeader('Vary', 'Origin')
-			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
+			res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+			res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+			res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+		}
+
+		if (req.method === 'OPTIONS') {
+			return res.sendStatus(204)
 		}
 
 		next()
