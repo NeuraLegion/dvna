@@ -1,10 +1,7 @@
-var express = require('express')
-var app = express()
+var http = require('http')
+var app = require('./app')
+var port = process.env.PORT || 3000
 
-app.use(function (req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	next()
+http.createServer(app).listen(port, function () {
+	console.log('Server listening on port ' + port)
 })
-
-module.exports = app
