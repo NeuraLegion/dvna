@@ -38,26 +38,32 @@ router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
 })
 
 router.get('/logout', function (req, res) {
-	if (req.logout) {
-		req.logout()
-	}
-
 	var clearOptions = {
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: config.cookieSecure === true
+		secure: config.cookieSecure === true,
+		path: '/'
+	}
+
+	function clearSessionCookie () {
+		res.clearCookie('connect.sid', clearOptions)
+		res.redirect('/')
+	}
+
+	if (req.logout) {
+		try {
+			req.logout()
+		} catch (e) {}
 	}
 
 	if (req.session) {
 		req.session.destroy(function () {
-			res.clearCookie('connect.sid', clearOptions)
-			res.redirect('/')
+			clearSessionCookie()
 		})
 		return
 	}
 
-	res.clearCookie('connect.sid', clearOptions)
-	res.redirect('/')
+	clearSessionCookie()
 })
 
 router.get('/forgotpw', function (req, res) {
