@@ -93,20 +93,30 @@ module.exports.listProducts = function (req, res) {
 }
 
 module.exports.productSearch = function (req, res) {
+	var searchTerm = typeof req.body.name === 'string' ? req.body.name : ''
+
 	db.Product.findAll({
 		where: {
 			name: {
-				[Op.like]: '%' + req.body.name + '%'
+				[Op.like]: '%' + searchTerm + '%'
 			}
 		}
 	}).then(products => {
 		output = {
 			products: products,
-			searchTerm: req.body.name
+			searchTerm: searchTerm
 		}
 		res.render('app/products', {
 			output: output
 		})
+	}).catch(err => {
+		logDatabaseError('Failed to search products:', err)
+		renderWithGenericError(req, res, 'app/products', {
+			output: {
+				products: [],
+				searchTerm: searchTerm
+			}
+		}, 'Unable to search products.')
 	})
 }
 

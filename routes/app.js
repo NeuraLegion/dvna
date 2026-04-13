@@ -31,8 +31,8 @@ function getAllowedOrigins() {
 }
 
 function setSecurityHeaders(req, res, next) {
-	// Apply headers up-front for every /app route so responses from handlers
-	// that render, redirect, or send early still carry the protection header.
+	// Make the headers idempotent so downstream handlers cannot overwrite them
+	// and responses that render/redirect still inherit the protection policy.
 	if (!res.getHeader('X-Frame-Options')) {
 		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	}
@@ -41,14 +41,13 @@ function setSecurityHeaders(req, res, next) {
 		res.setHeader('X-Content-Type-Options', 'nosniff')
 	}
 
-	// Always emit HSTS on app responses when the request is HTTPS or is
-	// terminated by a trusted proxy that marks the original scheme as HTTPS.
-	// This keeps the header present on all successful and error responses
-	// produced by this router instead of depending on downstream handlers.
 	if ((req.secure || req.headers['x-forwarded-proto'] === 'https') && !res.getHeader('Strict-Transport-Security')) {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 	}
 
+	// Keep the policy consistent for the /app area. The products page includes
+	// a small inline script, so the policy allows only self-hosted scripts and
+	// the specific style/image/font sources already used by the app.
 	if (!res.getHeader('Content-Security-Policy')) {
 		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
 	}
