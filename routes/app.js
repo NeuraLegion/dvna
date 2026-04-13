@@ -19,6 +19,13 @@ module.exports = function () {
         next()
     }
 
+    function setFrameOptionsHeader(req, res, next) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        next()
+    }
+
+    router.use(setFrameOptionsHeader)
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
