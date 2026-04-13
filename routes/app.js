@@ -62,6 +62,7 @@ module.exports = function () {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         res.render('app/calc',{output:null})
     })
 
