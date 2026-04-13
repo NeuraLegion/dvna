@@ -1,65 +1,37 @@
 var express = require('express')
+var path = require('path')
+var cookieParser = require('cookie-parser')
+var bodyParser = require('body-parser')
 var session = require('express-session')
-var RedisStore = require('connect-redis')(session)
-var serverConfig = require('./config/server')
+var passport = require('passport')
+
+var mainRoutes = require('./routes/main')
+var appRoutes = require('./routes/app')
 
 var app = express()
 
-function isSecureRequest(req) {
-	if (req.secure) {
-		return true
-	}
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
 
-	var forwardedProto = req.get('X-Forwarded-Proto')
-	if (!forwardedProto) {
-		return false
-	}
-
-	return forwardedProto.split(',')[0].trim().toLowerCase() === 'https'
-}
-
-function buildSessionCookieOptions(req) {
-	var secureCookie = isSecureRequest(req)
-
-	return {
-		httpOnly: true,
-		secure: secureCookie,
-		sameSite: 'lax'
-	}
-}
-
-// Ensure Express respects proxy headers so req.secure works correctly when TLS is terminated upstream.
-app.set('trust proxy', 1)
-
-var store = new RedisStore({
-	url: serverConfig.redisUrl
-})
-
-app.use(function (req, res, next) {
-	req.sessionCookieOptions = buildSessionCookieOptions(req)
-	next()
-})
-
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cookieParser())
 app.use(session({
-	secret: serverConfig.sessionSecret,
+	secret: process.env.SESSION_SECRET || 'change-me',
 	resave: false,
-	saveUninitialized: false,
-	store: store,
-	proxy: true,
-	cookie: {
-		httpOnly: true,
-		secure: true,
-		sameSite: 'lax'
-	}
+	saveUninitialized: false
 }))
+app.use(passport.initialize())
+app.use(passport.session())
 
+// Enforce clickjacking protection for every response, including error handlers,
+// redirects, and route paths that may bypass downstream middleware.
 app.use(function (req, res, next) {
-	if (req.session && req.session.cookie && req.sessionCookieOptions) {
-		req.session.cookie.secure = req.sessionCookieOptions.secure
-		req.session.cookie.httpOnly = true
-		req.session.cookie.sameSite = 'lax'
-	}
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	next()
 })
+
+app.use('/', mainRoutes(passport))
+app.use('/app', appRoutes())
 
 module.exports = app
