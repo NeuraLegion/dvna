@@ -20,7 +20,6 @@ function setCorsHeaders(req, res) {
 
 function setFrameProtectionHeaders(res) {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'")
     res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
@@ -40,6 +39,10 @@ module.exports = function () {
         setStrictTransportSecurity(req, res)
         setFrameProtectionHeaders(res)
 
+        if (req.path && req.path.indexOf('/app') === 0) {
+            setAppPageContentSecurityPolicy(res)
+        }
+
         if (req.method === 'OPTIONS') {
             return res.sendStatus(204)
         }
@@ -52,26 +55,22 @@ module.exports = function () {
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
-        setAppPageContentSecurityPolicy(res)
         res.render('app/usersearch', {
             output: null
         })
     })
 
     router.get('/ping', authHandler.isAuthenticated, function (req, res) {
-        setAppPageContentSecurityPolicy(res)
         res.render('app/ping', {
             output: null
         })
     })
 
     router.post('/ping', authHandler.isAuthenticated, function (req, res) {
-        setAppPageContentSecurityPolicy(res)
         appHandler.ping(req, res)
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-        setAppPageContentSecurityPolicy(res)
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
@@ -80,7 +79,6 @@ module.exports = function () {
     })
 
     router.get('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
-        setAppPageContentSecurityPolicy(res)
         appHandler.modifyProduct(req, res)
     })
 
@@ -89,7 +87,6 @@ module.exports = function () {
     })
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
-        setAppPageContentSecurityPolicy(res)
         res.render('app/calc',{output:null})
     })
 
@@ -110,7 +107,6 @@ module.exports = function () {
     router.get('/redirect', appHandler.redirect)
 
     router.post('/usersearch', authHandler.isAuthenticated, function (req, res) {
-        setAppPageContentSecurityPolicy(res)
         appHandler.userSearch(req, res)
     })
 
