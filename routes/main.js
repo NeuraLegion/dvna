@@ -22,12 +22,16 @@ function isAllowedOrigin(requestOrigin) {
 	return getAllowedOrigins().indexOf(requestOrigin) !== -1
 }
 
+function setSecurityHeaders(res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
+}
+
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
+		setSecurityHeaders(res)
 
 		var requestOrigin = req.headers.origin
 		if (isAllowedOrigin(requestOrigin)) {
