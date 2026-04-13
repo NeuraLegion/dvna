@@ -136,6 +136,9 @@ function isSafeRedirectTarget(url) {
 module.exports = function () {
 	router.use(function (req, res, next) {
 		var corsAllowed = setCorsHeaders(req, res)
+
+		// Apply security headers to every app response as early as possible so all
+		// downstream handlers inherit them, including render/redirect paths.
 		ensureAppPageSecurityHeaders(req, res)
 
 		if (isHttpsRequest(req)) {
