@@ -70,9 +70,9 @@ function getContentSecurityPolicy() {
 }
 
 function setSecurityHeaders(req, res) {
-	// Set clickjacking protection as early and as broadly as possible.
-	// Some middleware or render paths may override headers later, so we also
-	// re-apply this in the route handler as a defense-in-depth measure.
+	// Apply clickjacking protection and related security headers on every /app response.
+	// This is called from router-level middleware so the header is present even if a
+	// downstream handler renders, redirects, or exits early.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 
@@ -125,8 +125,9 @@ module.exports = function () {
 	router.use(function (req, res, next) {
 		var corsAllowed = setCorsHeaders(req, res)
 
-		// Apply security headers to every app response as early as possible so all
-		// downstream handlers inherit them, including render/redirect/OPTIONS paths.
+		// Set security headers for every response on this router before any handler runs.
+		// This ensures POST /app/products and all other /app endpoints always carry the
+		// clickjacking protection header, even if a downstream path changes behavior.
 		setSecurityHeaders(req, res)
 
 		if (isHttpsRequest(req)) {
