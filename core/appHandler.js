@@ -20,6 +20,25 @@ function isValidPingTarget(address) {
 	return /^[a-zA-Z0-9.:-]+$/.test(address)
 }
 
+function isSafeRedirectTarget(url) {
+	if (typeof url !== 'string') {
+		return false
+	}
+
+	url = url.trim()
+	if (!url) {
+		return false
+	}
+
+	// Only allow relative redirects within the application.
+	// This prevents open redirects to attacker-controlled external sites.
+	if (url.startsWith('/')) {
+		return !url.startsWith('//')
+	}
+
+	return false
+}
+
 module.exports.userSearch = function (req, res) {
 	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
@@ -177,7 +196,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		}		
+		} 		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){
@@ -216,10 +235,10 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
+	if (isSafeRedirectTarget(req.query.url)) {
 		res.redirect(req.query.url)
 	} else {
-		res.send('invalid redirect url')
+		res.status(400).send('invalid redirect url')
 	}
 }
 
