@@ -76,10 +76,7 @@ function setSecurityHeaders(req, res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
-	}
+	res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
 }
 
 function isSafeRedirectTarget(url) {
@@ -124,7 +121,7 @@ module.exports = function () {
 
 		// Set security headers for every response on this router before any handler runs.
 		// This ensures POST /app/products and all other /app endpoints always carry the
-		// clickjacking protection header, even if a downstream path changes behavior.
+		// required browser security headers, even if a downstream path renders or redirects.
 		setSecurityHeaders(req, res)
 
 		if (isHttpsRequest(req)) {
