@@ -1,13 +1,11 @@
 var express = require('express')
-var session = require('express-session')
-var flash = require('connect-flash')
-var passport = require('passport')
 var path = require('path')
+var cookieParser = require('cookie-parser')
+var session = require('express-session')
 var config = require('./config/server')
-
 var app = express()
 
-app.set('trust proxy', 1)
+app.use(cookieParser())
 
 app.use(session({
 	secret: process.env.SESSION_SECRET,
@@ -21,15 +19,6 @@ app.use(session({
 		path: '/'
 	}
 }))
-
-app.use(flash())
-app.use(passport.initialize())
-app.use(passport.session())
-
-app.use(function (req, res, next) {
-	res.locals.secureCookies = config.cookieSecure === true
-	next()
-})
 
 app.use(express.static(path.join(__dirname, 'public')))
 
