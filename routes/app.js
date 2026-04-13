@@ -19,6 +19,11 @@ module.exports = function () {
         next()
     }
 
+    function setContentSecurityPolicyHeader(req, res, next) {
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+        next()
+    }
+
     function setFrameOptionsHeader(req, res, next) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         next()
@@ -31,6 +36,7 @@ module.exports = function () {
 
     router.use(setHstsHeader)
     router.use(setFrameOptionsHeader)
+    router.use(setContentSecurityPolicyHeader)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
