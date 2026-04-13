@@ -9,6 +9,9 @@ function setSecurityHeaders(req, res, next) {
 	if (!res.getHeader('Content-Security-Policy')) {
 		res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'")
 	}
+	if (!res.getHeader('Strict-Transport-Security')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
 	return next()
 }
 
@@ -78,10 +81,6 @@ router.get('/logout', function (req, res) {
 })
 
 router.get('/forgotpw', function (req, res) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'")
-	}
 	res.render('forgotpw')
 })
 
