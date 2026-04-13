@@ -11,43 +11,28 @@ function normalizeOrigin(origin) {
 	return origin.trim()
 }
 
+function isValidOrigin(origin) {
+	if (typeof origin !== 'string') {
+		return false
+	}
+
+	return /^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(origin)
+}
+
 function getAllowedOrigins() {
 	var configured = ''
-	if (serverConfig && typeof serverConfig.corsOrigin === 'string') {
+
+	if (serverConfig && typeof serverConfig.corsOrigin === 'string' && serverConfig.corsOrigin.trim()) {
 		configured = serverConfig.corsOrigin
-	} else if (process.env.CORS_ORIGIN) {
+	} else if (typeof process.env.CORS_ORIGIN === 'string' && process.env.CORS_ORIGIN.trim()) {
 		configured = process.env.CORS_ORIGIN
 	}
 
 	return configured.split(',').map(function (origin) {
 		return normalizeOrigin(origin)
 	}).filter(function (origin) {
-		if (!origin || origin === '*') {
-			return false
-		}
-
-		return /^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(origin)
+		return origin && origin !== '*' && isValidOrigin(origin)
 	})
-}
-
-function setSecurityHeaders(req, res, next) {
-	if (!res.getHeader('X-Frame-Options')) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	}
-
-	if (!res.getHeader('X-Content-Type-Options')) {
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-	}
-
-	if ((req.secure || req.headers['x-forwarded-proto'] === 'https') && !res.getHeader('Strict-Transport-Security')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
-
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-	}
-
-	return next()
 }
 
 function setCorsHeaders(req, res, next) {
@@ -72,6 +57,26 @@ function setCorsHeaders(req, res, next) {
 
 	if (req.method === 'OPTIONS') {
 		return res.sendStatus(204)
+	}
+
+	return next()
+}
+
+function setSecurityHeaders(req, res, next) {
+	if (!res.getHeader('X-Frame-Options')) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	}
+
+	if (!res.getHeader('X-Content-Type-Options')) {
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+	}
+
+	if ((req.secure || req.headers['x-forwarded-proto'] === 'https') && !res.getHeader('Strict-Transport-Security')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
+
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
 	}
 
 	return next()
