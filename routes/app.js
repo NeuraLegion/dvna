@@ -174,6 +174,7 @@ module.exports = function () {
 
 	router.post('/ping', authHandler.isAuthenticated, function (req, res) {
 		ensureAppPageSecurityHeaders(req, res)
+		res.setHeader('X-Content-Type-Options', 'nosniff')
 		res.render('app/ping', {
 			output: null
 		})
