@@ -3,6 +3,22 @@ var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
 module.exports = function () {
+    var allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+        .split(',')
+        .map(function (origin) { return origin.trim() })
+        .filter(function (origin) { return origin.length > 0 })
+
+    function setCorsHeaders(req, res, next) {
+        var origin = req.headers.origin
+
+        if (origin && allowedOrigins.indexOf(origin) !== -1) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+            res.setHeader('Vary', 'Origin')
+        }
+
+        next()
+    }
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
@@ -19,7 +35,7 @@ module.exports = function () {
         })
     })
 
-    router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
+    router.get('/bulkproducts', authHandler.isAuthenticated, setCorsHeaders, function (req, res) {
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
