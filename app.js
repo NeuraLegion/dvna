@@ -4,10 +4,9 @@ var favicon = require('serve-favicon')
 var logger = require('morgan')
 var cookieParser = require('cookie-parser')
 var bodyParser = require('body-parser')
+var flash = require('connect-flash')
 var session = require('express-session')
-var flash = require('express-flash')
 var passport = require('passport')
-var routes = require('./routes/main')
 var config = require('./config/server')
 
 var app = express()
@@ -15,35 +14,40 @@ var app = express()
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
 
-// Anti-clickjacking protection for all responses
-app.use(function (req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	next()
-})
-
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+
 app.use(session({
-	secret: config.sessionSecret,
+	secret: process.env.SESSION_SECRET || 'dvna-session-secret',
 	resave: false,
 	saveUninitialized: false,
 	cookie: {
 		httpOnly: true,
-		sameSite: 'lax',
-		secure: config.cookieSecure === true
+		secure: config.cookieSecure === true,
+		sameSite: 'lax'
 	}
 }))
+
 app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
 
-app.use('/', routes(passport))
-
+// Security headers for all responses.
 app.use(function (req, res, next) {
-	res.status(404).send('404')
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+
+	var isHttps = req.secure === true || req.headers['x-forwarded-proto'] === 'https'
+	if (isHttps && (config.hstsEnabled === true || config.cookieSecure === true || process.env.NODE_ENV === 'production')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
+
+	next()
 })
+
+app.use('/', require('./routes/main')(passport))
 
 module.exports = app
