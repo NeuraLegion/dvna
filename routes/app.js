@@ -156,23 +156,33 @@ function isAllowedRedirectTarget(url) {
 		return false
 	}
 
-	var allowedTargets = [
-		'/learn',
-		'/app/learn',
-		'/app/products',
-		'/app/usersearch',
-		'/app/ping',
-		'/app/calc',
-		'/app/admin',
-		'/app/useredit',
-		'/app/bulkproducts'
-	]
-
-	if (allowedTargets.indexOf(url) !== -1) {
-		return true
+	var allowedTargets = {
+		'/learn': true,
+		'/app/learn': true,
+		'/app/products': true,
+		'/app/usersearch': true,
+		'/app/ping': true,
+		'/app/calc': true,
+		'/app/admin': true,
+		'/app/useredit': true,
+		'/app/bulkproducts': true
 	}
 
-	return /^\/(?!\/)[A-Za-z0-9/_\-?=&%.]*$/.test(url)
+	if (!allowedTargets[url]) {
+		return false
+	}
+
+	// Reject absolute URLs, protocol-relative URLs, and attempts to smuggle
+	// control characters or encoded separators into the redirect target.
+	if (url.indexOf('://') !== -1 || url.indexOf('\\') !== -1) {
+		return false
+	}
+
+	if (url.startsWith('//')) {
+		return false
+	}
+
+	return /^\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%-]|\/[A-Za-z0-9._~!$&'()*+,;=:@%\-]*)*$/.test(url)
 }
 
 function safeErrorHandler(err, req, res, next) {
@@ -246,7 +256,7 @@ module.exports = function () {
 			return res.status(400).send('invalid redirect url')
 		}
 
-		return res.redirect(target)
+		return res.redirect(302, target)
 	})
 
 	router.post('/usersearch', authHandler.isAuthenticated, function (req, res) {
