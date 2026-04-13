@@ -7,7 +7,7 @@ var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
 		model: db.User
 	}).then(user => {
@@ -145,7 +145,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		}		
+		} 		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){
@@ -184,11 +184,23 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
-		res.redirect(req.query.url)
-	} else {
-		res.send('invalid redirect url')
+	var url = req.query.url
+	var allowedRedirectPaths = ['/learn', '/app/products', '/app/usersearch', '/app/ping', '/app/calc']
+
+	if (!url || typeof url !== 'string') {
+		return res.send('invalid redirect url')
 	}
+
+	// Allow only approved same-origin relative paths or explicit allowlisted paths.
+	if (url.charAt(0) === '/' && url.indexOf('//') !== 0) {
+		if (allowedRedirectPaths.indexOf(url) !== -1) {
+			return res.redirect(url)
+		}
+
+		return res.status(400).send('invalid redirect url')
+	}
+
+	return res.status(400).send('invalid redirect url')
 }
 
 module.exports.calc = function (req, res) {
