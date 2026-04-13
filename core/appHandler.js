@@ -14,9 +14,6 @@ function isValidPingTarget(address) {
 	if (!address) {
 		return false
 	}
-	// Allow only a conservative set of safe host/IP characters.
-	// This prevents shell metacharacters and command injection while still
-	// permitting common hostnames, IPv4/IPv6 literals, and shortnames.
 	return /^[a-zA-Z0-9.:-]+$/.test(address)
 }
 
@@ -32,7 +29,21 @@ function renderWithGenericError(req, res, view, renderData, message) {
 		req.flash('danger', message)
 	}
 
+	if (!res.getHeader('X-Content-Type-Options')) {
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+	}
+
 	res.status(200).render(view, renderData)
+}
+
+function setResponseSecurityHeaders(res) {
+	if (!res.getHeader('X-Frame-Options')) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	}
+
+	if (!res.getHeader('X-Content-Type-Options')) {
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+	}
 }
 
 module.exports.userSearch = function (req, res) {
@@ -47,11 +58,13 @@ module.exports.userSearch = function (req, res) {
 					id: user[0].id
 				}
 			}
+			setResponseSecurityHeaders(res)
 			res.render('app/usersearch', {
 				output: output
 			})
 		} else {
 			req.flash('warning', 'User not found')
+			setResponseSecurityHeaders(res)
 			res.render('app/usersearch', {
 				output: null
 			})
@@ -68,6 +81,7 @@ module.exports.ping = function (req, res) {
 	const address = req.body.address
 
 	if (!isValidPingTarget(address)) {
+		setResponseSecurityHeaders(res)
 		return res.render('app/ping', {
 			output: 'Invalid address'
 		})
@@ -75,6 +89,7 @@ module.exports.ping = function (req, res) {
 
 	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
 		var output = stdout + stderr
+		setResponseSecurityHeaders(res)
 		res.render('app/ping', {
 			output: output
 		})
@@ -86,6 +101,7 @@ module.exports.listProducts = function (req, res) {
 		output = {
 			products: products
 		}
+		setResponseSecurityHeaders(res)
 		res.render('app/products', {
 			output: output
 		})
@@ -106,11 +122,15 @@ module.exports.productSearch = function (req, res) {
 			products: products,
 			searchTerm: searchTerm
 		}
+		setResponseSecurityHeaders(res)
 		res.render('app/products', {
 			output: output
 		})
 	}).catch(err => {
 		logDatabaseError('Failed to search products:', err)
+		if (!res.getHeader('X-Content-Type-Options')) {
+			res.setHeader('X-Content-Type-Options', 'nosniff')
+		}
 		renderWithGenericError(req, res, 'app/products', {
 			output: {
 				products: [],
@@ -125,6 +145,7 @@ module.exports.modifyProduct = function (req, res) {
 		output = {
 			product: {}
 		}
+		setResponseSecurityHeaders(res)
 		res.render('app/modifyproduct', {
 			output: output
 		})
@@ -140,6 +161,7 @@ module.exports.modifyProduct = function (req, res) {
 			output = {
 				product: product
 			}
+			setResponseSecurityHeaders(res)
 			res.render('app/modifyproduct', {
 				output: output
 			})
@@ -174,7 +196,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 			product.save().then(p => {
 				if (p) {
 					req.flash('success', 'Product added/modified!')
-					res.redirect('/app/products')
+					return res.redirect('/app/products')
 				}
 			}).catch(err => {
 				logDatabaseError('Failed to save product:', err)
@@ -195,6 +217,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 }
 
 module.exports.userEdit = function (req, res) {
+	setResponseSecurityHeaders(res)
 	res.render('app/useredit', {
 		userId: req.user.id,
 		userEmail: req.user.email,
@@ -214,6 +237,7 @@ module.exports.userEditSubmit = function (req, res) {
 					user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
 				}else{
 					req.flash('warning', 'Passwords dont match')
+					setResponseSecurityHeaders(res)
 					res.render('app/useredit', {
 						userId: req.user.id,
 						userEmail: req.user.email,
@@ -223,6 +247,7 @@ module.exports.userEditSubmit = function (req, res) {
 				}
 			}else{
 				req.flash('warning', 'Invalid Password')
+				setResponseSecurityHeaders(res)
 				res.render('app/useredit', {
 					userId: req.user.id,
 					userEmail: req.user.email,
@@ -234,7 +259,8 @@ module.exports.userEditSubmit = function (req, res) {
 		user.email = req.body.email
 		user.name = req.body.name
 		user.save().then(function () {
-			req.flash('success',"Updated successfully")
+			req.flash('success','Updated successfully')
+			setResponseSecurityHeaders(res)
 			res.render('app/useredit', {
 				userId: req.body.id,
 				userEmail: req.body.email,
@@ -245,17 +271,17 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	// Redirect validation is enforced in routes/app.js.
-	// Keep this handler as a defensive fallback in case it is called directly.
 	res.status(400).send('invalid redirect url')
 }
 
 module.exports.calc = function (req, res) {
 	if (req.body.eqn) {
+		setResponseSecurityHeaders(res)
 		res.render('app/calc', {
 			output: mathjs.eval(req.body.eqn)
 		})
 	} else {
+		setResponseSecurityHeaders(res)
 		res.render('app/calc', {
 			output: 'Enter a valid math string like (3+3)*2'
 		})
@@ -283,8 +309,9 @@ module.exports.bulkProductsLegacy = function (req,res){
 			newProduct.description = product.description
 			newProduct.save()
 		})
-		res.redirect('/app/products')
+		return res.redirect('/app/products')
 	}else{
+		setResponseSecurityHeaders(res)
 		res.render('app/bulkproducts',{messages:{danger:'Invalid file'},legacy:true})
 	}
 }
@@ -300,8 +327,9 @@ module.exports.bulkProducts =  function(req, res) {
 			newProduct.description = product.childNodes()[3].text()
 			newProduct.save()
 		})
-		res.redirect('/app/products')
+		return res.redirect('/app/products')
 	}else{
+		setResponseSecurityHeaders(res)
 		res.render('app/bulkproducts',{messages:{danger:'Invalid file'},legacy:false})
 	}
 }
