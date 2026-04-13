@@ -1,67 +1,39 @@
 var express = require('express')
-var path = require('path')
-var favicon = require('serve-favicon')
-var logger = require('morgan')
-var cookieParser = require('cookie-parser')
-var bodyParser = require('body-parser')
-var session = require('express-session')
-var flash = require('connect-flash')
-var passport = require('passport')
-var mongoose = require('mongoose')
-var MongoStore = require('connect-mongo')(session)
-
 var app = express()
 
-// security headers for every response
-app.disable('x-powered-by')
+var allowedOrigins = (process.env.CORS_ORIGIN || '')
+	.split(',')
+	.map(function (origin) {
+		return origin.trim()
+	})
+	.filter(function (origin) {
+		return origin.length > 0
+	})
+
+function isAllowedOrigin(origin) {
+	if (!origin) {
+		return false
+	}
+
+	return allowedOrigins.indexOf(origin) !== -1
+}
+
 app.use(function (req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
+	var origin = req.get('Origin')
+
+	if (isAllowedOrigin(origin)) {
+		res.setHeader('Access-Control-Allow-Origin', origin)
+		res.setHeader('Vary', 'Origin')
+		res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+		res.setHeader('Access-Control-Allow-Credentials', 'true')
+	}
+
+	if (req.method === 'OPTIONS') {
+		return res.sendStatus(204)
+	}
+
 	next()
-})
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
-
-app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
-app.use(logger('dev'))
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(cookieParser())
-app.use(express.static(path.join(__dirname, 'public')))
-
-app.use(session({
-	secret: process.env.SESSION_SECRET || 'keyboard cat',
-	resave: false,
-	saveUninitialized: false,
-	store: new MongoStore({
-		mongooseConnection: mongoose.connection
-	})
-}))
-
-app.use(flash())
-app.use(passport.initialize())
-app.use(passport.session())
-
-app.use('/', require('./routes/main')(passport))
-
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-	var err = new Error('Not Found')
-	err.status = 404
-	next(err)
-})
-
-// error handlers
-app.use(function (err, req, res, next) {
-	res.status(err.status || 500)
-	res.render('error', {
-		message: err.message,
-		error: app.get('env') === 'development' ? err : {}
-	})
 })
 
 module.exports = app
