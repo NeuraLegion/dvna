@@ -20,14 +20,19 @@ function isValidPingTarget(address) {
 	return /^[a-zA-Z0-9.:-]+$/.test(address)
 }
 
-function handleDatabaseError(req, res, logMessage, userMessage, renderView, renderData) {
-	console.error(logMessage, renderData && renderData.error ? renderData.error : '')
+function logDatabaseError(message, err) {
+	console.error(message)
+	if (err) {
+		console.error(err)
+	}
+}
 
+function renderWithGenericError(req, res, view, renderData, message) {
 	if (req && typeof req.flash === 'function') {
-		req.flash('danger', userMessage)
+		req.flash('danger', message)
 	}
 
-	res.render(renderView, renderData && renderData.viewData ? renderData.viewData : {})
+	res.status(200).render(view, renderData)
 }
 
 module.exports.userSearch = function (req, res) {
@@ -52,12 +57,10 @@ module.exports.userSearch = function (req, res) {
 			})
 		}
 	}).catch(err => {
-		handleDatabaseError(req, res, 'Failed to execute user search query:', 'Internal Error', 'app/usersearch', {
-			viewData: {
-				output: null
-			},
-			error: err
-		})
+		logDatabaseError('Failed to execute user search query:', err)
+		renderWithGenericError(req, res, 'app/usersearch', {
+			output: null
+		}, 'Internal Error')
 	})
 }
 
@@ -130,6 +133,13 @@ module.exports.modifyProduct = function (req, res) {
 			res.render('app/modifyproduct', {
 				output: output
 			})
+		}).catch(err => {
+			logDatabaseError('Failed to load product for modification:', err)
+			renderWithGenericError(req, res, 'app/modifyproduct', {
+				output: {
+					product: {}
+				}
+			}, 'Unable to load product details.')
 		})
 	}
 }
@@ -157,22 +167,20 @@ module.exports.modifyProductSubmit = function (req, res) {
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
-			console.error('Failed to save product:', err)
-			req.flash('danger', 'An error occurred while saving the product.')
-			res.status(200).render('app/modifyproduct', {
+			logDatabaseError('Failed to save product:', err)
+			renderWithGenericError(req, res, 'app/modifyproduct', {
 				output: {
 					product: product
 				}
-			})
+			}, 'An error occurred while saving the product.')
 		})
 	}).catch(err => {
-		console.error('Failed to load product for modification:', err)
-		req.flash('danger', 'An error occurred while saving the product.')
-		res.status(200).render('app/modifyproduct', {
+		logDatabaseError('Failed to load product for modification:', err)
+		renderWithGenericError(req, res, 'app/modifyproduct', {
 			output: {
 				product: {}
 			}
-		})
+		}, 'An error occurred while saving the product.')
 	})
 }
 
@@ -188,7 +196,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		} 		
+		}		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){
