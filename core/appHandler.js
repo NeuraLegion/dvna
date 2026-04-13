@@ -144,13 +144,23 @@ module.exports.modifyProductSubmit = function (req, res) {
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
+			console.error('Failed to save product:', err)
 			output = {
 				product: product
 			}
-			req.flash('danger',err)
+			req.flash('danger', 'An error occurred while saving the product.')
 			res.render('app/modifyproduct', {
 				output: output
 			})
+		})
+	}).catch(err => {
+		console.error('Failed to load product for modification:', err)
+		output = {
+			product: {}
+		}
+		req.flash('danger', 'An error occurred while saving the product.')
+		res.render('app/modifyproduct', {
+			output: output
 		})
 	})
 }
