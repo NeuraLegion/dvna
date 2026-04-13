@@ -1,42 +1,47 @@
 var express = require('express')
 var path = require('path')
+var favicon = require('serve-favicon')
 var logger = require('morgan')
 var cookieParser = require('cookie-parser')
 var bodyParser = require('body-parser')
+var flash = require('connect-flash')
 var expressSession = require('express-session')
-var flash = require('express-flash')
 var passport = require('passport')
-var expressValidator = require('express-validator')
-
 var app = express()
+
+require('./core/passport')(passport)
+var routes = require('./routes/main')(passport)
 
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
 
+// Required so secure cookies work correctly when the app is deployed behind a proxy
+// that terminates TLS (e.g. Heroku, nginx, load balancers).
+app.set('trust proxy', 1)
+
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+
 app.use(expressSession({
-	secret: 'your secret here',
+	secret: process.env.SESSION_SECRET || 'your secret here',
 	resave: false,
-	saveUninitialized: false
+	saveUninitialized: false,
+	proxy: true,
+	cookie: {
+		httpOnly: true,
+		secure: true,
+		sameSite: 'lax'
+	}
 }))
+
 app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
-app.use(expressValidator())
 
-app.use(function (req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-	next()
-})
-
-app.use(express.static(path.join(__dirname, 'public')))
-
-app.use('/', require('./routes/index')())
-app.use('/app', require('./routes/app')())
+app.use('/', routes)
 
 module.exports = app
