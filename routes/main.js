@@ -3,6 +3,17 @@ var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 var config = require('../config/server')
 
+function setSecurityHeaders(req, res, next) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'")
+	}
+	return next()
+}
+
+router.use(setSecurityHeaders)
+
 router.get('/', authHandler.isAuthenticated, function (req, res) {
 	res.redirect('/learn')
 })
@@ -67,6 +78,10 @@ router.get('/logout', function (req, res) {
 })
 
 router.get('/forgotpw', function (req, res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'")
+	}
 	res.render('forgotpw')
 })
 
