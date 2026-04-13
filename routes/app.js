@@ -71,14 +71,11 @@ function getContentSecurityPolicy() {
 
 function setSecurityHeaders(req, res) {
 	// Apply clickjacking protection and related security headers on every /app response.
-	// This is called from router-level middleware so the header is present even if a
-	// downstream handler renders, redirects, or exits early.
+	// HSTS must be emitted on all /app responses so browsers learn HTTPS-only access
+	// even when the request arrives through an HTTP endpoint in front of TLS.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
-
-	if (isHttpsRequest(req)) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 
 	if (!res.getHeader('Content-Security-Policy')) {
 		res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
