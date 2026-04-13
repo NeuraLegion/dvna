@@ -46,6 +46,7 @@ module.exports = function () {
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/usersearch', {
             output: null
@@ -53,6 +54,7 @@ module.exports = function () {
     })
 
     router.get('/ping', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/ping', {
             output: null
@@ -60,46 +62,65 @@ module.exports = function () {
     })
 
     router.post('/ping', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         appHandler.ping(req, res)
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
-    router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
+    router.get('/products', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.listProducts(req, res)
+    })
 
     router.get('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         res.setHeader('X-Content-Type-Options', 'nosniff')
         appHandler.modifyProduct(req, res)
     })
 
-    router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
+    router.get('/useredit', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.userEdit(req, res)
+    })
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/calc',{output:null})
     })
 
     router.get('/admin', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
         res.render('app/admin', {
             admin: (req.user.role == 'admin')
         })
     })
 
-    router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
+    router.get('/admin/usersapi', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.listUsersAPI(req, res)
+    })
 
     router.get('/admin/users', authHandler.isAuthenticated, function(req, res){
+        setFrameProtectionHeaders(res)
         res.render('app/adminusers')
     })
 
     router.get('/redirect', appHandler.redirect)
 
-    router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
+    router.post('/usersearch', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        setAppPageContentSecurityPolicy(res)
+        appHandler.userSearch(req, res)
+    })
 
     router.post('/products', authHandler.isAuthenticated, function (req, res) {
         setFrameProtectionHeaders(res)
@@ -107,15 +128,30 @@ module.exports = function () {
         appHandler.productSearch(req, res)
     })
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.modifyProductSubmit(req, res)
+    })
 
-    router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
+    router.post('/useredit', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.userEditSubmit(req, res)
+    })
 
-    router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
+    router.post('/calc', authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.calc(req, res)
+    })
 
-    router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts);
+    router.post('/bulkproducts',authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.bulkProducts(req, res)
+    })
 
-    router.post('/bulkproductslegacy',authHandler.isAuthenticated, appHandler.bulkProductsLegacy);
+    router.post('/bulkproductslegacy',authHandler.isAuthenticated, function (req, res) {
+        setFrameProtectionHeaders(res)
+        appHandler.bulkProductsLegacy(req, res)
+    })
 
     return router
 }
