@@ -1,14 +1,21 @@
 var express = require('express')
+var session = require('express-session')
+var config = require('./config/server')
+
 var app = express()
 
-app.set('trust proxy', true)
+app.set('trust proxy', 1)
 
-app.use(function (req, res, next) {
-	if ((req.secure || req.headers['x-forwarded-proto'] === 'https') && !res.getHeader('Strict-Transport-Security')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+app.use(session({
+	secret: process.env.SESSION_SECRET || 'change-this-secret',
+	resave: false,
+	saveUninitialized: false,
+	proxy: true,
+	cookie: {
+		httpOnly: true,
+		sameSite: 'lax',
+		secure: config.cookieSecure === true
 	}
-
-	return next()
-})
+}))
 
 module.exports = app
