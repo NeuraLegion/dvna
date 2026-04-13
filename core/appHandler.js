@@ -130,14 +130,6 @@ module.exports.modifyProduct = function (req, res) {
 			res.render('app/modifyproduct', {
 				output: output
 			})
-		}).catch(err => {
-			console.error('Failed to load product for modification:', err)
-			req.flash('danger', 'An error occurred while loading the product.')
-			res.render('app/modifyproduct', {
-				output: {
-					product: {}
-				}
-			})
 		})
 	}
 }
@@ -196,7 +188,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		}		
+		} 		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){
@@ -235,11 +227,9 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
-		res.redirect(req.query.url)
-	} else {
-		res.send('invalid redirect url')
-	}
+	// Redirect validation is enforced in routes/app.js.
+	// Keep this handler as a defensive fallback in case it is called directly.
+	res.status(400).send('invalid redirect url')
 }
 
 module.exports.calc = function (req, res) {

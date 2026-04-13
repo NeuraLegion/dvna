@@ -76,6 +76,42 @@ function setAppPageContentSecurityPolicy(res) {
 	}
 }
 
+function isSafeRedirectTarget(url) {
+	if (typeof url !== 'string') {
+		return false
+	}
+
+	url = url.trim()
+	if (!url) {
+		return false
+	}
+
+	// Only allow same-site relative redirects.
+	// Block protocol-relative URLs and any absolute URL.
+	if (!url.startsWith('/')) {
+		return false
+	}
+
+	if (url.startsWith('//')) {
+		return false
+	}
+
+	// Normalize and explicitly allow only known internal destinations.
+	// Expand this list only when a new internal redirect destination is needed.
+	var allowedPaths = {
+		'/learn': true,
+		'/app': true,
+		'/app/products': true,
+		'/app/usersearch': true,
+		'/app/ping': true,
+		'/app/bulkproducts': true,
+		'/app/calc': true,
+		'/app/admin': true
+	}
+
+	return !!allowedPaths[url]
+}
+
 module.exports = function () {
 	router.use(function (req, res, next) {
 		setCorsHeaders(req, res)
@@ -153,7 +189,13 @@ module.exports = function () {
 		res.render('app/adminusers')
 	})
 
-	router.get('/redirect', appHandler.redirect)
+	router.get('/redirect', authHandler.isAuthenticated, function (req, res) {
+		if (!isSafeRedirectTarget(req.query.url)) {
+			return res.status(400).send('invalid redirect url')
+		}
+
+		return res.redirect(req.query.url)
+	})
 
 	router.post('/usersearch', authHandler.isAuthenticated, function (req, res) {
 		appHandler.userSearch(req, res)
