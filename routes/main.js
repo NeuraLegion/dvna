@@ -6,12 +6,8 @@ var config = require('../config/server')
 function setSecurityHeaders(req, res, next) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'")
-	}
-	if (!res.getHeader('Strict-Transport-Security')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com; frame-ancestors 'self'")
 	return next()
 }
 
