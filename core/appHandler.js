@@ -168,7 +168,7 @@ module.exports.modifyProduct = function (req, res) {
 		})
 }
 
-module.exports.modifyProductSubmit = function (req, res) {
+module.exports.modifyProductSubmit = function (req, res, next) {
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}

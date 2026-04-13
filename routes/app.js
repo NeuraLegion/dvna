@@ -159,6 +159,18 @@ function isAllowedRedirectTarget(url) {
 	return /^\/(?!\/)[A-Za-z0-9/_\-?=&%.]*$/.test(url)
 }
 
+function safeErrorHandler(err, req, res, next) {
+	if (res.headersSent) {
+		return next(err)
+	}
+
+	// Never leak stack traces or DB internals to the client.
+	console.error('Unhandled application error:', err)
+	res.status(500).render('error', {
+		message: 'An unexpected error occurred.'
+	})
+}
+
 module.exports = function () {
 	router.use(setSecurityHeaders)
 	router.use(setResponseFrameProtection)
@@ -169,15 +181,11 @@ module.exports = function () {
 	})
 
 	router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/usersearch', {
-			output: null
-		})
+		appHandler.userSearch(req, res)
 	})
 
 	router.get('/ping', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/ping', {
-			output: null
-		})
+		appHandler.ping(req, res)
 	})
 
 	router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
@@ -236,8 +244,8 @@ module.exports = function () {
 		appHandler.productSearch(req, res)
 	})
 
-	router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
-		appHandler.modifyProductSubmit(req, res)
+	router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
+		appHandler.modifyProductSubmit(req, res, next)
 	})
 
 	router.post('/useredit', authHandler.isAuthenticated, function (req, res) {
@@ -255,6 +263,8 @@ module.exports = function () {
 	router.post('/bulkproductslegacy', authHandler.isAuthenticated, function(req, res) {
 		appHandler.bulkProductsLegacy(req, res)
 	})
+
+	router.use(safeErrorHandler)
 
 	return router
 }
