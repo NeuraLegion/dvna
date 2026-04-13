@@ -1,6 +1,22 @@
 var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
+var serverConfig = require('../config/server')
+
+function setCorsHeaders(req, res) {
+    var origin = req.get('Origin')
+
+    if (!origin) {
+        return
+    }
+
+    if (serverConfig.corsOrigin && origin === serverConfig.corsOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Vary', 'Origin')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    }
+}
 
 module.exports = function () {
     router.get('/', authHandler.isAuthenticated, function (req, res) {
@@ -8,6 +24,7 @@ module.exports = function () {
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
+        setCorsHeaders(req, res)
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
