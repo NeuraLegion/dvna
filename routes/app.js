@@ -57,9 +57,8 @@ function applySecurityHeaders(req, res) {
 		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	}
 
-	if (!res.getHeader('X-Content-Type-Options')) {
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-	}
+	// Always set nosniff for HTML and all other responses served by this router.
+	res.setHeader('X-Content-Type-Options', 'nosniff')
 
 	if (!res.getHeader('Content-Security-Policy')) {
 		res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
@@ -223,6 +222,8 @@ module.exports = function () {
 	})
 
 	router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+		// Explicitly set the security header on this response path as defense-in-depth.
+		res.setHeader('X-Content-Type-Options', 'nosniff')
 		res.render('app/calc', {output: null})
 	})
 

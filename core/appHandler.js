@@ -267,13 +267,12 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
+	setResponseSecurityHeaders(res)
 	if (req.body.eqn) {
-		setResponseSecurityHeaders(res)
 		res.render('app/calc', {
 			output: mathjs.eval(req.body.eqn)
 		})
 	} else {
-		setResponseSecurityHeaders(res)
 		res.render('app/calc', {
 			output: 'Enter a valid math string like (3+3)*2'
 		})
