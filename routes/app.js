@@ -81,6 +81,7 @@ module.exports = function () {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         appHandler.productSearch(req, res)
     })
 
