@@ -77,7 +77,13 @@ module.exports = function () {
 
     router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
 
+    router.options('/products', authHandler.isAuthenticated, function (req, res) {
+        setCorsHeaders(req, res)
+        res.sendStatus(204)
+    })
+
     router.post('/products', authHandler.isAuthenticated, function (req, res) {
+        setCorsHeaders(req, res)
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
