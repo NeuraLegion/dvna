@@ -79,7 +79,27 @@ module.exports = function (passport) {
 	})
 
 	router.get('/logout', function (req, res) {
-		req.logout();
+		if (req.logout) {
+			req.logout()
+		}
+
+		if (req.session) {
+			req.session.destroy(function () {
+				res.clearCookie('connect.sid', {
+					httpOnly: true,
+					secure: true,
+					sameSite: 'lax'
+				})
+				res.redirect('/')
+			})
+			return
+		}
+
+		res.clearCookie('connect.sid', {
+			httpOnly: true,
+			secure: true,
+			sameSite: 'lax'
+		})
 		res.redirect('/')
 	})
 
