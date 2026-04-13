@@ -18,7 +18,7 @@ module.exports = function (passport) {
 			vuln_scenario: req.params.vuln + '/scenario',
 			vuln_description: req.params.vuln + '/description',
 			vuln_reference: req.params.vuln + '/reference',
-			vulnerabilities:vulnDict
+			vulnerabilities: vulnDict
 		}, function (err, html) {
 			if (err) {
 				console.log(err)
@@ -30,7 +30,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
-		res.render('learn',{vulnerabilities:vulnDict})
+		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
 	router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
