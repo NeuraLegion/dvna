@@ -137,6 +137,7 @@ module.exports.modifyProduct = function (req, res) {
 		output = {
 			product: {}
 		}
+		setResponseSecurityHeaders(res)
 		return res.render('app/modifyproduct', {
 			output: output
 		})

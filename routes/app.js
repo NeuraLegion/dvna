@@ -90,6 +90,8 @@ function setResponseFrameProtection(req, res, next) {
 	var originalRedirect = res.redirect
 	var originalJson = res.json
 	var originalSend = res.send
+	var originalSendStatus = res.sendStatus
+	var originalEnd = res.end
 
 	function ensureProtection() {
 		applySecurityHeaders(req, res)
@@ -113,6 +115,16 @@ function setResponseFrameProtection(req, res, next) {
 	res.send = function () {
 		ensureProtection()
 		return originalSend.apply(this, arguments)
+	}
+
+	res.sendStatus = function () {
+		ensureProtection()
+		return originalSendStatus.apply(this, arguments)
+	}
+
+	res.end = function () {
+		ensureProtection()
+		return originalEnd.apply(this, arguments)
 	}
 
 	return next()
