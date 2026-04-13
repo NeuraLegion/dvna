@@ -1,42 +1,37 @@
 var express = require('express')
-var bodyParser = require('body-parser')
-var passport = require('passport')
 var session = require('express-session')
-var ejs = require('ejs')
-var morgan = require('morgan')
-const fileUpload = require('express-fileupload');
-var config = require('./config/server')
 
-//Initialize Express
 var app = express()
-require('./core/passport')(passport)
-app.use(express.static('public'))
-app.set('view engine','ejs')
-app.use(morgan('tiny'))
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(fileUpload());
 
-// Enable for Reverse proxy support
-// app.set('trust proxy', 1) 
+// If the app is deployed behind a reverse proxy / load balancer that terminates TLS,
+// Express must trust the proxy so req.secure is computed correctly.
+app.set('trust proxy', 1)
 
-// Intialize Session
-app.use(session({
-  secret: 'keyboard cat',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: false }
-}))
+function isProduction() {
+    return process.env.NODE_ENV === 'production'
+}
 
-// Initialize Passport
-app.use(passport.initialize())
-app.use(passport.session())
+function buildSessionCookieOptions(req) {
+    var secureCookie = req && req.secure
 
-// Initialize express-flash
-app.use(require('express-flash')());
+    // Preserve auth in non-HTTPS environments while still enabling secure cookies
+    // when HTTPS is actually in use.
+    return {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProduction() ? secureCookie : false
+    }
+}
 
-// Routing
-app.use('/app',require('./routes/app')())
-app.use('/',require('./routes/main')(passport))
+app.use(function (req, res, next) {
+    // Apply session middleware once at the bootstrap layer so all routes use the same
+    // cookie configuration and no handler can bypass it.
+    session({
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        cookie: buildSessionCookieOptions(req)
+    })(req, res, next)
+})
 
-// Start Server
-app.listen(config.port, config.listen)
+module.exports = app

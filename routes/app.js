@@ -3,6 +3,47 @@ var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
 module.exports = function () {
+    var allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+        .split(',')
+        .map(function (origin) { return origin.trim() })
+        .filter(function (origin) { return origin.length > 0 })
+
+    function setCorsHeaders(req, res, next) {
+        var origin = req.headers.origin
+
+        if (origin && allowedOrigins.indexOf(origin) !== -1) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+            res.setHeader('Vary', 'Origin')
+        }
+
+        next()
+    }
+
+    function setContentSecurityPolicyHeader(req, res, next) {
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+        next()
+    }
+
+    function setFrameOptionsHeader(req, res, next) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        next()
+    }
+
+    function setNoSniffHeader(req, res, next) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        next()
+    }
+
+    function setHstsHeader(req, res, next) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        next()
+    }
+
+    router.use(setHstsHeader)
+    router.use(setFrameOptionsHeader)
+    router.use(setContentSecurityPolicyHeader)
+    router.use(setNoSniffHeader)
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
@@ -19,13 +60,13 @@ module.exports = function () {
         })
     })
 
-    router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
+    router.get('/bulkproducts', authHandler.isAuthenticated, setCorsHeaders, function (req, res) {
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
 
-    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
+    router.get('/modifyproduct', authHandler.isAuthenticated, setCorsHeaders, appHandler.modifyProduct)
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
@@ -53,7 +94,9 @@ module.exports = function () {
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, setCorsHeaders, setContentSecurityPolicyHeader, function (req, res, next) {
+        setFrameOptionsHeader(req, res, next)
+    }, appHandler.modifyProductSubmit)
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
