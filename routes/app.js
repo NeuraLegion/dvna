@@ -20,7 +20,6 @@ module.exports = function () {
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
