@@ -74,12 +74,16 @@ function setContentSecurityPolicyHeader(res) {
 	}
 }
 
+function setFrameOptionsHeader(res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+}
+
 function setHstsHeader(res) {
 	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 }
 
 function setSecurityHeaders(req, res) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	setFrameOptionsHeader(res)
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 
 	if (isHttpsRequest(req)) {
