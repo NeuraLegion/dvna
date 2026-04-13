@@ -28,6 +28,7 @@ function setCorsHeaders(req, res) {
 	if (allowedOrigins.indexOf(requestOrigin) !== -1) {
 		res.setHeader('Access-Control-Allow-Origin', requestOrigin)
 		res.setHeader('Vary', 'Origin')
+		res.setHeader('Access-Control-Allow-Credentials', 'true')
 	}
 }
 
