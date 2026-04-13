@@ -65,39 +65,9 @@ function applySecurityHeaders(req, res) {
 		res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
 	}
 
-	// Only emit HSTS on HTTPS responses. This is the correct deployment-time
-	// behavior, but we make it reliable for all response paths under /app.
 	if (isHttpsRequest(req) && !res.getHeader('Strict-Transport-Security')) {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 	}
-}
-
-function setCorsHeaders(req, res, next) {
-	var requestOrigin = normalizeOrigin(req.get('Origin'))
-	var allowedOrigins = getAllowedOrigins()
-	var matchedOrigin = ''
-
-	for (var i = 0; i < allowedOrigins.length; i++) {
-		if (allowedOrigins[i] === requestOrigin) {
-			matchedOrigin = allowedOrigins[i]
-			break
-		}
-	}
-
-	if (matchedOrigin) {
-		res.setHeader('Access-Control-Allow-Origin', matchedOrigin)
-		res.setHeader('Vary', 'Origin')
-		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-		res.setHeader('Access-Control-Allow-Credentials', 'true')
-	}
-
-	if (req.method === 'OPTIONS') {
-		applySecurityHeaders(req, res)
-		return res.sendStatus(204)
-	}
-
-	return next()
 }
 
 function setSecurityHeaders(req, res, next) {
@@ -150,6 +120,34 @@ function setResponseFrameProtection(req, res, next) {
 	return next()
 }
 
+function setCorsHeaders(req, res, next) {
+	var requestOrigin = normalizeOrigin(req.get('Origin'))
+	var allowedOrigins = getAllowedOrigins()
+	var matchedOrigin = ''
+
+	for (var i = 0; i < allowedOrigins.length; i++) {
+		if (allowedOrigins[i] === requestOrigin) {
+			matchedOrigin = allowedOrigins[i]
+			break
+		}
+	}
+
+	if (matchedOrigin) {
+		res.setHeader('Access-Control-Allow-Origin', matchedOrigin)
+		res.setHeader('Vary', 'Origin')
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+		res.setHeader('Access-Control-Allow-Credentials', 'true')
+	}
+
+	if (req.method === 'OPTIONS') {
+		applySecurityHeaders(req, res)
+		return res.sendStatus(204)
+	}
+
+	return next()
+}
+
 function isAllowedRedirectTarget(url) {
 	if (typeof url !== 'string') {
 		return false
@@ -184,7 +182,6 @@ function safeErrorHandler(err, req, res, next) {
 		return next(err)
 	}
 
-	// Never leak stack traces or DB internals to the client.
 	console.error('Unhandled application error:', err)
 	applySecurityHeaders(req, res)
 	res.status(500).render('error', {
