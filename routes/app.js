@@ -36,7 +36,16 @@ function getAllowedOrigins() {
 }
 
 function isHttpsRequest(req) {
-	return !!(req.secure || req.headers['x-forwarded-proto'] === 'https')
+	if (req.secure) {
+		return true
+	}
+
+	var forwardedProto = req.headers['x-forwarded-proto']
+	if (typeof forwardedProto === 'string') {
+		return forwardedProto.split(',')[0].trim() === 'https'
+	}
+
+	return false
 }
 
 function getContentSecurityPolicy() {
@@ -56,6 +65,8 @@ function applySecurityHeaders(req, res) {
 		res.setHeader('Content-Security-Policy', getContentSecurityPolicy())
 	}
 
+	// Only emit HSTS on HTTPS responses. This is the correct deployment-time
+	// behavior, but we make it reliable for all response paths under /app.
 	if (isHttpsRequest(req) && !res.getHeader('Strict-Transport-Security')) {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 	}
