@@ -14,8 +14,8 @@ function isProduction() {
 function buildSessionCookieOptions(req) {
     var secureCookie = req && req.secure
 
-    // In production we require HTTPS for session cookies. Behind a proxy, req.secure
-    // is only reliable when trust proxy is enabled above.
+    // Preserve auth in non-HTTPS environments while still enabling secure cookies
+    // when HTTPS is actually in use.
     return {
         httpOnly: true,
         sameSite: 'lax',
