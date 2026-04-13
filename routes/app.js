@@ -41,8 +41,10 @@ function setSecurityHeaders(req, res, next) {
 		res.setHeader('X-Content-Type-Options', 'nosniff')
 	}
 
-	// HSTS must be set for HTTPS responses so browsers enforce secure-only
-	// access on subsequent requests.
+	// Always emit HSTS on app responses when the request is HTTPS or is
+	// terminated by a trusted proxy that marks the original scheme as HTTPS.
+	// This keeps the header present on all successful and error responses
+	// produced by this router instead of depending on downstream handlers.
 	if ((req.secure || req.headers['x-forwarded-proto'] === 'https') && !res.getHeader('Strict-Transport-Security')) {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 	}
