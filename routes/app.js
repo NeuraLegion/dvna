@@ -66,7 +66,7 @@ module.exports = function () {
 
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
 
-    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
+    router.get('/modifyproduct', authHandler.isAuthenticated, setCorsHeaders, appHandler.modifyProduct)
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
