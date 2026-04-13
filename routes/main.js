@@ -58,6 +58,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 		res.render('forgotpw')
 	})
 
