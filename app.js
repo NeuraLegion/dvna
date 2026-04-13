@@ -1,15 +1,36 @@
 var express = require('express')
+var path = require('path')
+var cookieParser = require('cookie-parser')
+var logger = require('morgan')
+var helmet = require('helmet')
+
+var indexRouter = require('./routes/index')
+var appRouter = require('./routes/app')
+
 var app = express()
-var appRoutes = require('./routes/app')
+
+app.set('trust proxy', true)
+
+app.use(helmet({
+	strictTransportSecurity: {
+		maxAge: 31536000,
+		includeSubDomains: true,
+		preload: false
+	}
+}))
+
+app.use(logger('dev'))
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+
+app.use('/', indexRouter)
+app.use('/app', appRouter())
 
 app.use(function (req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-	next()
+	res.status(404)
+	res.render('404')
 })
-
-app.use('/app', appRoutes())
 
 module.exports = app
