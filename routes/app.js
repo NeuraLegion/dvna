@@ -24,6 +24,12 @@ module.exports = function () {
         next()
     }
 
+    function setHstsHeader(req, res, next) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        next()
+    }
+
+    router.use(setHstsHeader)
     router.use(setFrameOptionsHeader)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
