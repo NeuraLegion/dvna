@@ -1,26 +1,56 @@
 var express = require('express')
-var session = require('express-session')
-var config = require('./config/server')
+var path = require('path')
+var cookieParser = require('cookie-parser')
+var logger = require('morgan')
+var createError = require('http-errors')
+
+var indexRouter = require('./routes/index')
+var appRouter = require('./routes/app')
+var usersRouter = require('./routes/users')
+var apiRouter = require('./routes/api')
 
 var app = express()
 
-// Trust the first proxy hop when deployed behind a reverse proxy or load balancer.
-// This allows Express/session to correctly detect HTTPS requests via X-Forwarded-Proto.
+// Trust reverse proxies so secure headers and redirects work correctly
+// when HTTPS is terminated upstream (for example, at a load balancer).
 app.set('trust proxy', 1)
 
-app.use(session({
-	secret: process.env.SESSION_SECRET,
-	resave: false,
-	saveUninitialized: false,
-	proxy: true,
-	cookie: {
-		httpOnly: true,
-		sameSite: 'lax',
-		// Require Secure cookies in production and whenever HTTPS cookie mode is enabled.
-		// Keep development usable on plain HTTP when explicitly not running in production.
-		secure: config.cookieSecure === true,
-		path: '/'
-	}
-}))
+app.use(function (req, res, next) {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+
+    // Send HSTS only when the request is secure. When the app is behind a
+    // proxy, trust proxy allows req.secure to reflect the original protocol.
+    if (req.secure) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
+
+    next()
+})
+
+app.use(logger('dev'))
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+
+app.use('/', indexRouter)
+app.use('/app', appRouter())
+app.use('/users', usersRouter)
+app.use('/api', apiRouter)
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404))
+})
+
+// error handler
+app.use(function(err, req, res, next) {
+  res.locals.message = err.message
+  res.locals.error = req.app.get('env') === 'development' ? err : {}
+
+  res.status(err.status || 500)
+  res.render('error')
+})
 
 module.exports = app
