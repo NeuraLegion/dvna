@@ -44,6 +44,37 @@ function setSecurityHeaders(req, res, next) {
 	return next()
 }
 
+function isAllowedRedirectTarget(url) {
+	if (typeof url !== 'string') {
+		return false
+	}
+
+	url = url.trim()
+	if (!url) {
+		return false
+	}
+
+	// Allow only same-site relative paths and explicitly approved destinations.
+	// This blocks protocol-relative URLs, absolute external URLs, and javascript/data schemes.
+	var allowedTargets = [
+		'/learn',
+		'/app/learn',
+		'/app/products',
+		'/app/usersearch',
+		'/app/ping',
+		'/app/calc',
+		'/app/admin',
+		'/app/useredit',
+		'/app/bulkproducts'
+	]
+
+	if (allowedTargets.indexOf(url) !== -1) {
+		return true
+	}
+
+	return /^\/(?!\/)[A-Za-z0-9/_\-?=&%.]*$/.test(url)
+}
+
 module.exports = function () {
 	router.use(setSecurityHeaders)
 
@@ -98,7 +129,13 @@ module.exports = function () {
 	})
 
 	router.get('/redirect', authHandler.isAuthenticated, function (req, res) {
-		return appHandler.redirect(req, res)
+		var target = req.query.url
+
+		if (!isAllowedRedirectTarget(target)) {
+			return res.status(400).send('invalid redirect url')
+		}
+
+		return res.redirect(target)
 	})
 
 	router.post('/usersearch', authHandler.isAuthenticated, function (req, res) {

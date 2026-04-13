@@ -154,34 +154,34 @@ module.exports.modifyProductSubmit = function (req, res) {
 			'id': req.body.id
 		}
 	}).then(product => {
-		if (!product) {
-			product = new db.Product()
-		}
-		product.code = req.body.code
-		product.name = req.body.name
-		product.description = req.body.description
-		product.tags = req.body.tags
-		product.save().then(p => {
-			if (p) {
-				req.flash('success', 'Product added/modified!')
-				res.redirect('/app/products')
+			if (!product) {
+				product = new db.Product()
 			}
+			product.code = req.body.code
+			product.name = req.body.name
+			product.description = req.body.description
+			product.tags = req.body.tags
+			product.save().then(p => {
+				if (p) {
+					req.flash('success', 'Product added/modified!')
+					res.redirect('/app/products')
+				}
+			}).catch(err => {
+				logDatabaseError('Failed to save product:', err)
+				renderWithGenericError(req, res, 'app/modifyproduct', {
+					output: {
+						product: product
+					}
+				}, 'An error occurred while saving the product.')
+			})
 		}).catch(err => {
-			logDatabaseError('Failed to save product:', err)
+			logDatabaseError('Failed to load product for modification:', err)
 			renderWithGenericError(req, res, 'app/modifyproduct', {
 				output: {
-					product: product
+					product: {}
 				}
 			}, 'An error occurred while saving the product.')
 		})
-	}).catch(err => {
-		logDatabaseError('Failed to load product for modification:', err)
-		renderWithGenericError(req, res, 'app/modifyproduct', {
-			output: {
-				product: {}
-			}
-		}, 'An error occurred while saving the product.')
-	})
 }
 
 module.exports.userEdit = function (req, res) {
@@ -196,7 +196,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		}		
+		} 		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){
