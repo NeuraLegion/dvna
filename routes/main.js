@@ -11,7 +11,62 @@ function setSecurityHeaders(req, res, next) {
 	return next()
 }
 
+function normalizeOrigin(origin) {
+	if (typeof origin !== 'string') {
+		return ''
+	}
+
+	return origin.trim()
+}
+
+function getAllowedOrigins() {
+	var configured = ''
+	if (config && typeof config.corsOrigin === 'string') {
+		configured = config.corsOrigin
+	} else if (process.env.CORS_ORIGIN) {
+		configured = process.env.CORS_ORIGIN
+	}
+
+	return configured.split(',').map(function (origin) {
+		return normalizeOrigin(origin)
+	}).filter(function (origin) {
+		if (!origin || origin === '*') {
+			return false
+		}
+
+		return /^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(origin)
+	})
+}
+
+function setCorsHeaders(req, res, next) {
+	var requestOrigin = normalizeOrigin(req.get('Origin'))
+	var allowedOrigins = getAllowedOrigins()
+	var matchedOrigin = ''
+
+	for (var i = 0; i < allowedOrigins.length; i++) {
+		if (allowedOrigins[i] === requestOrigin) {
+			matchedOrigin = allowedOrigins[i]
+			break
+		}
+	}
+
+	if (matchedOrigin) {
+		res.setHeader('Access-Control-Allow-Origin', matchedOrigin)
+		res.setHeader('Vary', 'Origin')
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+		res.setHeader('Access-Control-Allow-Credentials', 'true')
+	}
+
+	if (req.method === 'OPTIONS') {
+		return res.sendStatus(204)
+	}
+
+	return next()
+}
+
 router.use(setSecurityHeaders)
+router.use(setCorsHeaders)
 
 router.get('/', authHandler.isAuthenticated, function (req, res) {
 	res.redirect('/learn')
