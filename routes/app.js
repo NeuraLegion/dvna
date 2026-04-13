@@ -24,6 +24,38 @@ function setCorsHeaders(req, res) {
 	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 }
 
+function isHttpsRequest(req) {
+	return req.secure || req.get('x-forwarded-proto') === 'https'
+}
+
+function addSecureFlagToSetCookieHeader(setCookieHeader) {
+	if (!setCookieHeader) {
+		return setCookieHeader
+	}
+
+	var cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+
+	return cookies.map(function (cookie) {
+		if (typeof cookie !== 'string') {
+			return cookie
+		}
+
+		var attributes = cookie.split(';').map(function (part) {
+			return part.trim()
+		})
+
+		var hasSecure = attributes.some(function (attribute) {
+			return attribute.toLowerCase() === 'secure'
+		})
+
+		if (hasSecure) {
+			return cookie
+		}
+
+		return cookie + '; Secure'
+	})
+}
+
 function setSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -39,6 +71,17 @@ module.exports = function () {
 	router.use(function (req, res, next) {
 		setCorsHeaders(req, res)
 		setSecurityHeaders(res)
+
+		if (isHttpsRequest(req)) {
+			var originalSetHeader = res.setHeader.bind(res)
+			res.setHeader = function (name, value) {
+				if (typeof name === 'string' && name.toLowerCase() === 'set-cookie') {
+					value = addSecureFlagToSetCookieHeader(value)
+				}
+
+				return originalSetHeader(name, value)
+			}
+		}
 
 		if (req.path && req.path.indexOf('/app') === 0) {
 			setAppPageContentSecurityPolicy(res)
