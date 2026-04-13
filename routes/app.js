@@ -2,10 +2,6 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
-var allowedOrigins = [
-	'https://trusted.example.com'
-]
-
 function isSecureRequest(req) {
 	return req.secure || req.headers['x-forwarded-proto'] === 'https'
 }
@@ -22,27 +18,8 @@ function setSecurityHeaders(req, res, next) {
 	return next()
 }
 
-function setCorsHeaders(req, res, next) {
-	var origin = req.get('Origin')
-
-	if (origin && allowedOrigins.indexOf(origin) !== -1) {
-		res.setHeader('Access-Control-Allow-Origin', origin)
-		res.setHeader('Vary', 'Origin')
-		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-		res.setHeader('Access-Control-Allow-Credentials', 'true')
-	}
-
-	if (req.method === 'OPTIONS') {
-		return res.sendStatus(204)
-	}
-
-	return next()
-}
-
 module.exports = function () {
 	router.use(setSecurityHeaders)
-	router.use(setCorsHeaders)
 
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
