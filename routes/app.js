@@ -79,6 +79,7 @@ module.exports = function () {
 
     router.post('/products', authHandler.isAuthenticated, function (req, res) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         appHandler.productSearch(req, res)
     })
 
