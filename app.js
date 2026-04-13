@@ -1,21 +1,77 @@
 var express = require('express')
+var path = require('path')
+var favicon = require('serve-favicon')
+var logger = require('morgan')
+var cookieParser = require('cookie-parser')
+var bodyParser = require('body-parser')
+var flash = require('connect-flash')
+var mongoose = require('mongoose')
+var session = require('express-session')
+var passport = require('passport')
+var compression = require('compression')
+var fileUpload = require('express-fileupload')
+var helmet = require('helmet')
+
 var app = express()
 
-// Trust the first proxy so req.secure reflects the original client scheme
-// when TLS is terminated upstream (load balancer / reverse proxy).
-app.set('trust proxy', 1)
+var appRoutes = require('./routes/app')
+var authRoutes = require('./routes/auth')
+var apiRoutes = require('./routes/api')
+var mongoConfig = require('./config/db')
 
-// Enforce security headers globally so every route, including /app/ping,
-// returns HSTS when the app is served over HTTPS.
+mongoose.connect(mongoConfig.url)
+
+require('./config/passport')(passport)
+
+app.use(compression())
+app.use(logger('dev'))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+app.use(fileUpload())
+app.use(session({
+	secret: 'mSmdumRCmCnT7rS',
+	resave: true,
+	saveUninitialized: true
+}))
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(flash())
+
+app.use(helmet({
+	contentSecurityPolicy: {
+		useDefaults: true,
+		directives: {
+			defaultSrc: ["'self'"],
+			scriptSrc: ["'self'"],
+			objectSrc: ["'none'"],
+			baseUri: ["'self'"],
+			frameAncestors: ["'self'"],
+			imgSrc: ["'self'", 'data:'],
+			styleSrc: ["'self'", "'unsafe-inline'", 'https://maxcdn.bootstrapcdn.com', 'https://cdnjs.cloudflare.com'],
+			fontSrc: ["'self'", 'data:', 'https://maxcdn.bootstrapcdn.com']
+		}
+	}
+}))
+
 app.use(function (req, res, next) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-
-	if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; font-src 'self' data: https://maxcdn.bootstrapcdn.com")
 	}
-
 	next()
 })
+
+app.use('/auth', authRoutes())
+app.use('/app', appRoutes())
+app.use('/api', apiRoutes())
+
+app.get('/', function (req, res) {
+	res.render('index')
+})
+
+app.listen(3000)
 
 module.exports = app
