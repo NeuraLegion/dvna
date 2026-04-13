@@ -1,6 +1,7 @@
 var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
+var config = require('../config/server')
 
 router.get('/', authHandler.isAuthenticated, function (req, res) {
 	res.redirect('/learn')
@@ -41,23 +42,21 @@ router.get('/logout', function (req, res) {
 		req.logout()
 	}
 
+	var clearOptions = {
+		httpOnly: true,
+		sameSite: 'lax',
+		secure: config.cookieSecure === true
+	}
+
 	if (req.session) {
 		req.session.destroy(function () {
-			res.clearCookie('connect.sid', {
-				httpOnly: true,
-				secure: config.cookieSecure === true,
-				sameSite: 'lax'
-			})
+			res.clearCookie('connect.sid', clearOptions)
 			res.redirect('/')
 		})
 		return
 	}
 
-	res.clearCookie('connect.sid', {
-		httpOnly: true,
-		secure: config.cookieSecure === true,
-		sameSite: 'lax'
-	})
+	res.clearCookie('connect.sid', clearOptions)
 	res.redirect('/')
 })
 
