@@ -70,6 +70,9 @@ function getContentSecurityPolicy() {
 }
 
 function setSecurityHeaders(req, res) {
+	// Set clickjacking protection as early and as broadly as possible.
+	// Some middleware or render paths may override headers later, so we also
+	// re-apply this in the route handler as a defense-in-depth measure.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 
