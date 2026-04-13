@@ -51,7 +51,10 @@ module.exports = function () {
 
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
 
-    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
+    router.get('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        appHandler.modifyProduct(req, res)
+    })
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
