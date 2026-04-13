@@ -24,26 +24,19 @@ function logDatabaseError(message, err) {
 	}
 }
 
+function setResponseSecurityHeaders(res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'")
+}
+
 function renderWithGenericError(req, res, view, renderData, message) {
 	if (req && typeof req.flash === 'function') {
 		req.flash('danger', message)
 	}
 
-	if (!res.getHeader('X-Content-Type-Options')) {
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-	}
-
+	setResponseSecurityHeaders(res)
 	res.status(200).render(view, renderData)
-}
-
-function setResponseSecurityHeaders(res) {
-	if (!res.getHeader('X-Frame-Options')) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	}
-
-	if (!res.getHeader('X-Content-Type-Options')) {
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-	}
 }
 
 module.exports.userSearch = function (req, res) {
@@ -128,9 +121,6 @@ module.exports.productSearch = function (req, res) {
 		})
 	}).catch(err => {
 		logDatabaseError('Failed to search products:', err)
-		if (!res.getHeader('X-Content-Type-Options')) {
-			res.setHeader('X-Content-Type-Options', 'nosniff')
-		}
 		renderWithGenericError(req, res, 'app/products', {
 			output: {
 				products: [],
@@ -141,20 +131,22 @@ module.exports.productSearch = function (req, res) {
 }
 
 module.exports.modifyProduct = function (req, res) {
+	setResponseSecurityHeaders(res)
+
 	if (!req.query.id || req.query.id == '') {
 		output = {
 			product: {}
 		}
-		setResponseSecurityHeaders(res)
-		res.render('app/modifyproduct', {
+		return res.render('app/modifyproduct', {
 			output: output
 		})
-	} else {
-		db.Product.find({
-			where: {
-				'id': req.query.id
-			}
-		}).then(product => {
+	}
+
+	db.Product.find({
+		where: {
+			'id': req.query.id
+		}
+	}).then(product => {
 			if (!product) {
 				product = {}
 			}
@@ -173,7 +165,6 @@ module.exports.modifyProduct = function (req, res) {
 				}
 			}, 'Unable to load product details.')
 		})
-	}
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
