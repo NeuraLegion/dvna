@@ -6,6 +6,15 @@ var serverConfig = require('../config/server')
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
 		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
+
+		if (serverConfig.corsOrigin) {
+			res.setHeader('Vary', 'Origin')
+			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
+		}
+
 		next()
 	})
 
@@ -18,15 +27,6 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-
-		if (serverConfig.corsOrigin) {
-			res.setHeader('Vary', 'Origin')
-			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
-		}
-
 		res.render('vulnerabilities/layout', {
 			vuln: req.params.vuln,
 			vuln_title: vulnDict[req.params.vuln],
@@ -45,15 +45,6 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-
-		if (serverConfig.corsOrigin) {
-			res.setHeader('Vary', 'Origin')
-			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
-		}
-
 		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
@@ -67,15 +58,6 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com")
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-
-		if (serverConfig.corsOrigin) {
-			res.setHeader('Vary', 'Origin')
-			res.setHeader('Access-Control-Allow-Origin', serverConfig.corsOrigin)
-		}
-
 		res.render('forgotpw')
 	})
 
