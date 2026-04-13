@@ -1,56 +1,64 @@
 var express = require('express')
-var app = express()
 var path = require('path')
-var fs = require('fs')
-var bodyParser = require('body-parser')
-var methodOverride = require('method-override')
 var cookieParser = require('cookie-parser')
+var logger = require('morgan')
+var favicon = require('serve-favicon')
 var session = require('express-session')
+var MongoStore = require('connect-mongo')(session)
 var flash = require('connect-flash')
-var helmet = require('helmet')
+var bodyParser = require('body-parser')
+var csrf = require('csurf')
+var appConfig = require('./config/app')
+var serverConfig = require('./config/server')
 
-var config = require('./config/config')
-var routes = require('./routes')
+var indexRouter = require('./routes/index')
+var appRouter = require('./routes/app')
+var authRouter = require('./routes/auth')
+var adminRouter = require('./routes/admin')
 
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
+var app = express()
 
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(cookieParser())
-app.use(session({
-    secret: config.sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        httpOnly: true,
-        secure: false
-    }
-}))
-app.use(flash())
-app.use(methodOverride())
-
-app.use(helmet({
-    frameguard: { action: 'sameorigin' },
-    noSniff: true,
-    referrerPolicy: { policy: 'same-origin' }
-}))
-
+// Enforce browser MIME-sniffing protection for every response, including
+// rendered pages, static assets, redirects, and error responses.
 app.use(function (req, res, next) {
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     res.setHeader('X-Content-Type-Options', 'nosniff')
-
-    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    }
-
-    if (!res.getHeader('Content-Security-Policy')) {
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-    }
-
     next()
 })
 
-app.use('/', routes)
+app.use(logger('dev'))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
+
+app.use(session({
+    secret: appConfig.sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    store: new MongoStore({
+        url: serverConfig.mongoUrl,
+        collection: 'sessions'
+    })
+}))
+
+app.use(flash())
+app.use(csrf())
+
+app.use(function (req, res, next) {
+    res.locals.csrfToken = req.csrfToken()
+    next()
+})
+
+app.use('/', indexRouter())
+app.use('/app', appRouter())
+app.use('/auth', authRouter())
+app.use('/admin', adminRouter())
+
+// Make sure error responses also include the security header.
+app.use(function (err, req, res, next) {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    next(err)
+})
 
 module.exports = app
