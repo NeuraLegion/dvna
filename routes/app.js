@@ -1,6 +1,7 @@
 var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
+var serverConfig = require('../config/server')
 
 function setSecurityHeaders(req, res, next) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
@@ -14,30 +15,38 @@ function setSecurityHeaders(req, res, next) {
 
 function getAllowedOrigins() {
 	var configured = ''
-	if (process.env.CORS_ORIGIN) {
+	if (serverConfig && typeof serverConfig.corsOrigin === 'string') {
+		configured = serverConfig.corsOrigin
+	} else if (process.env.CORS_ORIGIN) {
 		configured = process.env.CORS_ORIGIN
 	}
+
 	var origins = configured.split(',').map(function (origin) {
 		return origin.trim()
 	}).filter(function (origin) {
-		return origin.length > 0
+		return origin.length > 0 && origin !== '*'
 	})
+
 	return origins
 }
 
-function setCorsHeaders(req, res) {
-	var requestOrigin = req.headers.origin
+function setCorsHeaders(req, res, next) {
+	var requestOrigin = req.get('Origin')
 	var allowedOrigins = getAllowedOrigins()
 
-	if (!requestOrigin || allowedOrigins.length === 0) {
-		return
-	}
-
-	if (allowedOrigins.indexOf(requestOrigin) !== -1) {
+	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
 		res.setHeader('Access-Control-Allow-Origin', requestOrigin)
 		res.setHeader('Vary', 'Origin')
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
 		res.setHeader('Access-Control-Allow-Credentials', 'true')
 	}
+
+	if (req.method === 'OPTIONS') {
+		return res.sendStatus(204)
+	}
+
+	return next()
 }
 
 function isAllowedRedirectTarget(url) {
@@ -71,6 +80,7 @@ function isAllowedRedirectTarget(url) {
 
 module.exports = function () {
 	router.use(setSecurityHeaders)
+	router.use(setCorsHeaders)
 
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
