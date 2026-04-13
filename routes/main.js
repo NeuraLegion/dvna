@@ -45,7 +45,7 @@ router.get('/logout', function (req, res) {
 		req.session.destroy(function () {
 			res.clearCookie('connect.sid', {
 				httpOnly: true,
-				secure: true,
+				secure: process.env.NODE_ENV === 'production',
 				sameSite: 'lax'
 			})
 			res.redirect('/')
@@ -55,7 +55,7 @@ router.get('/logout', function (req, res) {
 
 	res.clearCookie('connect.sid', {
 		httpOnly: true,
-		secure: true,
+		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax'
 	})
 	res.redirect('/')

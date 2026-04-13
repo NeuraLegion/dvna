@@ -1,39 +1,35 @@
 var express = require('express')
+var path = require('path')
+var cookieParser = require('cookie-parser')
+var logger = require('morgan')
+var session = require('express-session')
+
+var indexRouter = require('./routes/main')
+
 var app = express()
 
-var allowedOrigins = (process.env.CORS_ORIGIN || '')
-	.split(',')
-	.map(function (origin) {
-		return origin.trim()
-	})
-	.filter(function (origin) {
-		return origin.length > 0
-	})
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
 
-function isAllowedOrigin(origin) {
-	if (!origin) {
-		return false
+app.use(logger('dev'))
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+
+app.set('trust proxy', 1)
+
+app.use(session({
+	secret: process.env.SESSION_SECRET || 'change-me-in-production',
+	resave: false,
+	saveUninitialized: false,
+	cookie: {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'lax'
 	}
+}))
 
-	return allowedOrigins.indexOf(origin) !== -1
-}
-
-app.use(function (req, res, next) {
-	var origin = req.get('Origin')
-
-	if (isAllowedOrigin(origin)) {
-		res.setHeader('Access-Control-Allow-Origin', origin)
-		res.setHeader('Vary', 'Origin')
-		res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-		res.setHeader('Access-Control-Allow-Credentials', 'true')
-	}
-
-	if (req.method === 'OPTIONS') {
-		return res.sendStatus(204)
-	}
-
-	next()
-})
+app.use(express.static(path.join(__dirname, 'public')))
+app.use('/', indexRouter())
 
 module.exports = app
