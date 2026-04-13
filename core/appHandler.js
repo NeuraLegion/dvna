@@ -20,23 +20,14 @@ function isValidPingTarget(address) {
 	return /^[a-zA-Z0-9.:-]+$/.test(address)
 }
 
-function isSafeRedirectTarget(url) {
-	if (typeof url !== 'string') {
-		return false
+function handleDatabaseError(req, res, logMessage, userMessage, renderView, renderData) {
+	console.error(logMessage, renderData && renderData.error ? renderData.error : '')
+
+	if (req && typeof req.flash === 'function') {
+		req.flash('danger', userMessage)
 	}
 
-	url = url.trim()
-	if (!url) {
-		return false
-	}
-
-	// Only allow relative redirects within the application.
-	// This prevents open redirects to attacker-controlled external sites.
-	if (url.startsWith('/')) {
-		return !url.startsWith('//')
-	}
-
-	return false
+	res.render(renderView, renderData && renderData.viewData ? renderData.viewData : {})
 }
 
 module.exports.userSearch = function (req, res) {
@@ -61,9 +52,11 @@ module.exports.userSearch = function (req, res) {
 			})
 		}
 	}).catch(err => {
-		req.flash('danger', 'Internal Error')
-		res.render('app/usersearch', {
-			output: null
+		handleDatabaseError(req, res, 'Failed to execute user search query:', 'Internal Error', 'app/usersearch', {
+			viewData: {
+				output: null
+			},
+			error: err
 		})
 	})
 }
@@ -137,6 +130,14 @@ module.exports.modifyProduct = function (req, res) {
 			res.render('app/modifyproduct', {
 				output: output
 			})
+		}).catch(err => {
+			console.error('Failed to load product for modification:', err)
+			req.flash('danger', 'An error occurred while loading the product.')
+			res.render('app/modifyproduct', {
+				output: {
+					product: {}
+				}
+			})
 		})
 	}
 }
@@ -145,6 +146,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
+
 	db.Product.find({
 		where: {
 			'id': req.body.id
@@ -164,22 +166,20 @@ module.exports.modifyProductSubmit = function (req, res) {
 			}
 		}).catch(err => {
 			console.error('Failed to save product:', err)
-			output = {
-				product: product
-			}
 			req.flash('danger', 'An error occurred while saving the product.')
-			res.render('app/modifyproduct', {
-				output: output
+			res.status(200).render('app/modifyproduct', {
+				output: {
+					product: product
+				}
 			})
 		})
 	}).catch(err => {
 		console.error('Failed to load product for modification:', err)
-		output = {
-			product: {}
-		}
 		req.flash('danger', 'An error occurred while saving the product.')
-		res.render('app/modifyproduct', {
-			output: output
+		res.status(200).render('app/modifyproduct', {
+			output: {
+				product: {}
+			}
 		})
 	})
 }
@@ -196,7 +196,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		} 		
+		}		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){
@@ -235,10 +235,10 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (isSafeRedirectTarget(req.query.url)) {
+	if (req.query.url) {
 		res.redirect(req.query.url)
 	} else {
-		res.status(400).send('invalid redirect url')
+		res.send('invalid redirect url')
 	}
 }
 
