@@ -59,6 +59,7 @@ module.exports = function (passport) {
 
 	router.get('/forgotpw', function (req, res) {
 		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 		res.render('forgotpw')
 	})
 
