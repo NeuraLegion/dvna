@@ -31,7 +31,13 @@ function setAppPageContentSecurityPolicy(res) {
 
 module.exports = function () {
     router.use(function (req, res, next) {
+        setCorsHeaders(req, res)
         setFrameProtectionHeaders(res)
+
+        if (req.method === 'OPTIONS') {
+            return res.sendStatus(204)
+        }
+
         next()
     })
 
@@ -40,8 +46,6 @@ module.exports = function () {
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/usersearch', {
             output: null
@@ -49,7 +53,6 @@ module.exports = function () {
     })
 
     router.get('/ping', authHandler.isAuthenticated, function (req, res) {
-        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/ping', {
             output: null
@@ -57,14 +60,11 @@ module.exports = function () {
     })
 
     router.post('/ping', authHandler.isAuthenticated, function (req, res) {
-        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         appHandler.ping(req, res)
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
@@ -72,7 +72,6 @@ module.exports = function () {
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
 
     router.get('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -82,8 +81,6 @@ module.exports = function () {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        setFrameProtectionHeaders(res)
         setAppPageContentSecurityPolicy(res)
         res.render('app/calc',{output:null})
     })
@@ -104,13 +101,7 @@ module.exports = function () {
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.options('/products', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        res.sendStatus(204)
-    })
-
     router.post('/products', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
         setFrameProtectionHeaders(res)
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         appHandler.productSearch(req, res)
