@@ -1,15 +1,11 @@
 var express = require('express')
 var app = express()
-var session = require('express-session')
 
-app.set('trust proxy', 1)
-
-app.use(session({
-	secret: 'keyboard cat',
-	resave: true,
-	saveUninitialized: true,
-	cookie: {
-		secure: process.env.NODE_ENV === 'production',
-		httpOnly: true
+app.use(function (req, res, next) {
+	if (req.method === 'OPTIONS') {
+		return res.status(405).send('Method Not Allowed')
 	}
-}))
+	next()
+})
+
+module.exports = app
