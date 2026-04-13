@@ -8,6 +8,7 @@ module.exports = function () {
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         res.render('app/usersearch', {
             output: null
         })
