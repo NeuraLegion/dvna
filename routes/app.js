@@ -3,19 +3,21 @@ var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 var serverConfig = require('../config/server')
 
+function isTrustedOrigin(origin) {
+    return !!(serverConfig.corsOrigin && origin === serverConfig.corsOrigin)
+}
+
 function setCorsHeaders(req, res) {
     var origin = req.get('Origin')
 
-    if (!origin) {
+    if (!origin || !isTrustedOrigin(origin)) {
         return
     }
 
-    if (serverConfig.corsOrigin && origin === serverConfig.corsOrigin) {
-        res.setHeader('Access-Control-Allow-Origin', origin)
-        res.setHeader('Vary', 'Origin')
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    }
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 }
 
 function setFrameProtectionHeaders(res) {
@@ -56,9 +58,6 @@ module.exports = function () {
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-        res.setHeader('X-Content-Type-Options', 'nosniff')
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         res.render('app/usersearch', {
             output: null
         })
