@@ -77,7 +77,10 @@ module.exports = function () {
 
     router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
 
-    router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
+    router.post('/products', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        appHandler.productSearch(req, res)
+    })
 
     router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
 
