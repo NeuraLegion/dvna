@@ -16,8 +16,9 @@ module.exports = function () {
         var allowedMethods = 'GET,POST,OPTIONS'
         var allowedHeaders = 'Content-Type,Authorization,X-Requested-With'
         var origin = req.headers.origin
+        var isAllowedOrigin = origin && allowedOrigins.indexOf(origin) !== -1
 
-        if (origin && allowedOrigins.indexOf(origin) !== -1) {
+        if (isAllowedOrigin) {
             res.setHeader('Access-Control-Allow-Origin', origin)
             res.setHeader('Vary', 'Origin')
             res.setHeader('Access-Control-Allow-Methods', allowedMethods)
@@ -25,7 +26,7 @@ module.exports = function () {
         }
 
         if (req.method === 'OPTIONS') {
-            if (origin && allowedOrigins.indexOf(origin) !== -1) {
+            if (isAllowedOrigin) {
                 return res.sendStatus(204)
             }
             return res.sendStatus(403)
