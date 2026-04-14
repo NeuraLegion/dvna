@@ -1,42 +1,55 @@
 var express = require('express')
-var bodyParser = require('body-parser')
-var passport = require('passport')
+var path = require('path')
 var session = require('express-session')
-var ejs = require('ejs')
-var morgan = require('morgan')
-const fileUpload = require('express-fileupload');
-var config = require('./config/server')
 
-//Initialize Express
 var app = express()
-require('./core/passport')(passport)
-app.use(express.static('public'))
-app.set('view engine','ejs')
-app.use(morgan('tiny'))
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(fileUpload());
+var isProduction = process.env.NODE_ENV === 'production'
 
-// Enable for Reverse proxy support
-// app.set('trust proxy', 1) 
+app.set('trust proxy', 1)
 
-// Intialize Session
 app.use(session({
-  secret: 'keyboard cat',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: false }
+	secret: 'change-this-secret',
+	resave: false,
+	saveUninitialized: false,
+	proxy: true,
+	cookie: {
+		secure: isProduction,
+		httpOnly: true,
+		sameSite: 'lax'
+	}
 }))
 
-// Initialize Passport
-app.use(passport.initialize())
-app.use(passport.session())
+app.use(function (req, res, next) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('X-Content-Type-Options', 'nosniff')
 
-// Initialize express-flash
-app.use(require('express-flash')());
+	var origin = req.headers.origin
+	var trustedOrigins = [
+		'http://localhost:9090',
+		'https://localhost:9090'
+	]
 
-// Routing
-app.use('/app',require('./routes/app')())
-app.use('/',require('./routes/main')(passport))
+	if (origin && trustedOrigins.indexOf(origin) !== -1) {
+		res.setHeader('Access-Control-Allow-Origin', origin)
+		res.setHeader('Access-Control-Allow-Credentials', 'true')
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+	}
 
-// Start Server
-app.listen(config.port, config.listen)
+	res.setHeader('Vary', 'Origin')
+
+	var isSecureRequest = req.secure || req.headers['x-forwarded-proto'] === 'https'
+	if (isSecureRequest) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
+
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+
+	if (req.method === 'OPTIONS') {
+		return res.sendStatus(204)
+	}
+
+	next()
+})
+
+module.exports = app

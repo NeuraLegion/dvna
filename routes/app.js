@@ -2,7 +2,39 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
+var trustedOrigins = [
+    'http://localhost:9090',
+    'https://localhost:9090'
+]
+
+function isTrustedOrigin (origin) {
+    return trustedOrigins.indexOf(origin) !== -1
+}
+
 module.exports = function () {
+    router.use(function (req, res, next) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+
+        var origin = req.headers.origin
+        if (origin && isTrustedOrigin(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+            res.setHeader('Access-Control-Allow-Credentials', 'true')
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        }
+
+        res.setHeader('Vary', 'Origin')
+
+        var isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https'
+        if (isSecure) {
+            res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        }
+
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+        next()
+    })
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
@@ -20,7 +52,7 @@ module.exports = function () {
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-        res.render('app/bulkproducts',{legacy:req.query.legacy})
+        res.render('app/bulkproducts', {legacy: req.query.legacy})
     })
 
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
@@ -30,7 +62,7 @@ module.exports = function () {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
-        res.render('app/calc',{output:null})
+        res.render('app/calc', {output: null})
     })
 
     router.get('/admin', authHandler.isAuthenticated, function (req, res) {
@@ -59,9 +91,9 @@ module.exports = function () {
 
     router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
 
-    router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts);
+    router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
 
-    router.post('/bulkproductslegacy',authHandler.isAuthenticated, appHandler.bulkProductsLegacy);
+    router.post('/bulkproductslegacy', authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
 
     return router
 }

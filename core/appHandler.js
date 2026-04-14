@@ -6,8 +6,56 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+var allowedRedirects = [
+	'/learn',
+	'/app/products',
+	'/app/usersearch',
+	'/app/ping',
+	'/app/modifyproduct',
+	'/app/useredit',
+	'/app/calc',
+	'/app/admin',
+	'/app/admin/users'
+]
+
+function isValidOriginRequest (req) {
+	var origin = req.headers.origin
+	var referer = req.headers.referer
+	var expectedOrigin = req.protocol + '://' + req.get('host')
+
+	if (origin) {
+		return origin === expectedOrigin
+	}
+
+	if (referer) {
+		return referer.indexOf(expectedOrigin + '/') === 0 || referer === expectedOrigin
+	}
+
+	return false
+}
+
+function isAllowedRedirectTarget (target) {
+	if (typeof target !== 'string' || target.length === 0) {
+		return false
+	}
+
+	if (target.indexOf('/') !== 0) {
+		return false
+	}
+
+	if (target.indexOf('//') === 0) {
+		return false
+	}
+
+	if (target.indexOf('\\') !== -1) {
+		return false
+	}
+
+	return allowedRedirects.indexOf(target) !== -1
+}
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
 		model: db.User
 	}).then(user => {
@@ -74,9 +122,11 @@ module.exports.productSearch = function (req, res) {
 }
 
 module.exports.modifyProduct = function (req, res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	if (!req.query.id || req.query.id == '') {
 		output = {
-			product: {}
+			product: {},
+			csrfToken: req.csrfToken ? req.csrfToken() : null
 		}
 		res.render('app/modifyproduct', {
 			output: output
@@ -91,7 +141,8 @@ module.exports.modifyProduct = function (req, res) {
 				product = {}
 			}
 			output = {
-				product: product
+				product: product,
+				csrfToken: req.csrfToken ? req.csrfToken() : null
 			}
 			res.render('app/modifyproduct', {
 				output: output
@@ -101,6 +152,21 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
+	if (!isValidOriginRequest(req)) {
+		req.flash('danger', 'Invalid request origin')
+		return res.status(403).render('app/modifyproduct', {
+			output: {
+				product: {
+					id: req.body.id || '',
+					name: req.body.name || '',
+					code: req.body.code || '',
+					tags: req.body.tags || '',
+					description: req.body.description || ''
+				},
+				csrfToken: req.csrfToken ? req.csrfToken() : null
+			}
+		})
+	}
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
@@ -122,10 +188,12 @@ module.exports.modifyProductSubmit = function (req, res) {
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
+			console.error('Error saving product:', err)
 			output = {
-				product: product
+				product: product,
+				csrfToken: req.csrfToken ? req.csrfToken() : null
 			}
-			req.flash('danger',err)
+			req.flash('danger', 'An error occurred while saving the product.')
 			res.render('app/modifyproduct', {
 				output: output
 			})
@@ -145,7 +213,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		}		
+		} 		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){
@@ -184,10 +252,10 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
+	if (isAllowedRedirectTarget(req.query.url)) {
 		res.redirect(req.query.url)
 	} else {
-		res.send('invalid redirect url')
+		res.status(400).send('invalid redirect url')
 	}
 }
 

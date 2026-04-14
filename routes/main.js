@@ -2,7 +2,32 @@ var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 
+var allowedOrigins = [
+	'http://localhost:9090',
+	'https://localhost:9090'
+]
+
+function isTrustedOrigin (origin) {
+	return allowedOrigins.indexOf(origin) !== -1
+}
+
 module.exports = function (passport) {
+	router.use(function (req, res, next) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+
+		var origin = req.headers.origin
+		if (origin && isTrustedOrigin(origin)) {
+			res.setHeader('Access-Control-Allow-Origin', origin)
+			res.setHeader('Access-Control-Allow-Credentials', 'true')
+		}
+		res.setHeader('Vary', 'Origin')
+
+		next()
+	})
+
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
 	})
@@ -43,6 +68,12 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		var origin = req.headers.origin
+		if (origin && isTrustedOrigin(origin)) {
+			res.setHeader('Access-Control-Allow-Origin', origin)
+			res.setHeader('Access-Control-Allow-Credentials', 'true')
+		}
+		res.setHeader('Vary', 'Origin')
 		res.render('forgotpw')
 	})
 
