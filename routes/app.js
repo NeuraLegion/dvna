@@ -5,6 +5,7 @@ var authHandler = require('../core/authHandler')
 module.exports = function () {
     router.use(function (req, res, next) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        res.setHeader('X-Content-Type-Options', 'nosniff')
 
         var isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https'
         if (isSecure) {
