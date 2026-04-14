@@ -60,7 +60,10 @@ module.exports = function (app) {
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
-    router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
+    router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    }, appHandler.listProducts)
 
     router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
 
