@@ -1,23 +1,27 @@
 var express = require('express')
 var path = require('path')
-var favicon = require('serve-favicon')
 var logger = require('morgan')
 var cookieParser = require('cookie-parser')
 var bodyParser = require('body-parser')
+var flash = require('connect-flash')
 var session = require('express-session')
 var passport = require('passport')
-var flash = require('connect-flash')
+var expressLayouts = require('express-ejs-layouts')
 var helmet = require('helmet')
-
-var routes = require('./routes/main')(passport)
-var authHandler = require('./core/authHandler')
 
 var app = express()
 
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
+// Security headers
+app.use(function (req, res, next) {
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	next()
+})
+app.use(helmet.noSniff())
 
-app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
+app.set('view engine', 'ejs')
+app.set('views', path.join(__dirname, 'views'))
+app.use(expressLayouts)
+
 app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -27,33 +31,12 @@ app.use(session({
 	resave: false,
 	saveUninitialized: false
 }))
+app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
-app.use(flash())
-
-app.use(function (req, res, next) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	next()
-})
-
-app.use(helmet.noSniff())
-app.use(helmet.xssFilter())
-app.use(helmet.hidePoweredBy())
-app.use(helmet.contentSecurityPolicy({
-	directives: {
-		defaultSrc: ["'self'"],
-		scriptSrc: ["'self'", 'https://maxcdn.bootstrapcdn.com', 'https://cdnjs.cloudflare.com'],
-		styleSrc: ["'self'", "'unsafe-inline'", 'https://maxcdn.bootstrapcdn.com'],
-		imgSrc: ["'self'", 'data:'],
-		fontSrc: ["'self'", 'https://maxcdn.bootstrapcdn.com'],
-		objectSrc: ["'none'"],
-		baseUri: ["'self'"],
-		frameAncestors: ["'self'"]
-	}
-}))
 
 app.use(express.static(path.join(__dirname, 'public')))
-app.use('/', routes)
+
+app.use('/', require('./routes/main')(passport))
 
 module.exports = app
