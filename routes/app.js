@@ -8,6 +8,17 @@ module.exports = function () {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         res.setHeader('X-Content-Type-Options', 'nosniff')
+
+        var allowedOrigins = [
+            'http://localhost:9090',
+            'https://localhost:9090'
+        ]
+        var origin = req.headers.origin
+        if (origin && allowedOrigins.indexOf(origin) !== -1) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+            res.setHeader('Vary', 'Origin')
+        }
+
         next()
     })
 
