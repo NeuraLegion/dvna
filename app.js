@@ -1,74 +1,58 @@
 var express = require('express')
 var path = require('path')
-var cookieParser = require('cookie-parser')
+var favicon = require('serve-favicon')
 var logger = require('morgan')
-var session = require('express-session')
+var cookieParser = require('cookie-parser')
+var bodyParser = require('body-parser')
 var flash = require('connect-flash')
-var passport = require('passport')
-var createError = require('http-errors')
-var helmet = require('helmet')
-var isHttpsRequest = require('./core/isHttpsRequest')
-
-var indexRouter = require('./routes/index')
-var appRouter = require('./routes/app')
-var authRouter = require('./routes/auth')
-var adminRouter = require('./routes/admin')
+var session = require('express-session')
+var fileUpload = require('express-fileupload')
 
 var app = express()
 
-app.set('trust proxy', 1)
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
 
+// Ensure security headers are applied to every response, including routes that
+// may bypass router-level middleware, redirects, or error responses.
 app.use(function (req, res, next) {
-    if (isHttpsRequest(req)) {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    }
-
-    next()
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	next()
 })
 
-app.use(helmet({
-    contentSecurityPolicy: false
-}))
-
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
+app.use(session({
+	secret: process.env.SESSION_SECRET || 'change-me-in-production',
+	resave: false,
+	saveUninitialized: false
+}))
+app.use(flash())
+app.use(fileUpload())
 app.use(express.static(path.join(__dirname, 'public')))
 
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'change-me',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: isHttpsRequest({
-            secure: true,
-            headers: {}
-        })
-    }
-}))
+require('./routes')(app)
 
-app.use(flash())
-app.use(passport.initialize())
-app.use(passport.session())
-
-app.use('/', indexRouter)
-app.use('/', authRouter)
-app.use('/', adminRouter)
-app.use('/', appRouter(app))
-
+// Preserve explicit header setting on error responses as well.
 app.use(function (req, res, next) {
-    next(createError(404))
+	res.status(404)
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	res.render('error', {
+		message: 'Not Found',
+		error: {}
+	})
 })
 
 app.use(function (err, req, res, next) {
-    res.locals.message = err.message
-    res.locals.error = req.app.get('env') === 'development' ? err : {}
-
-    res.status(err.status || 500)
-    res.render('error')
+	res.status(err.status || 500)
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	res.render('error', {
+		message: err.message,
+		error: app.get('env') === 'development' ? err : {}
+	})
 })
 
 module.exports = app
