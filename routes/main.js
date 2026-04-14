@@ -18,6 +18,12 @@ function setCorsHeaders(req, res) {
 	return false
 }
 
+function setSecurityHeaders(req, res) {
+	if (!res.getHeader('X-Frame-Options')) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	}
+}
+
 function clearSessionCookie(req, res) {
 	var isSecureRequest = req.secure || req.headers['x-forwarded-proto'] === 'https'
 
@@ -30,6 +36,11 @@ function clearSessionCookie(req, res) {
 }
 
 module.exports = function (passport) {
+	router.use(function (req, res, next) {
+		setSecurityHeaders(req, res)
+		next()
+	})
+
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
 	})
@@ -85,6 +96,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		setSecurityHeaders(req, res)
 		setCorsHeaders(req, res)
 		res.render('forgotpw')
 	})
