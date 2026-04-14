@@ -2,11 +2,14 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
+var allowedOrigins = [
+    process.env.APP_ORIGIN
+].filter(Boolean)
+
 function setCorsHeaders(req, res, next) {
     var origin = req.headers.origin
-    var expected = req.protocol + '://' + req.get('host')
 
-    if (origin && origin === expected) {
+    if (origin && allowedOrigins.indexOf(origin) !== -1) {
         res.set('Access-Control-Allow-Origin', origin)
         res.set('Vary', 'Origin')
         res.set('Access-Control-Allow-Credentials', 'true')
