@@ -3,164 +3,155 @@ var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
 var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
-	return origin.trim()
+    return origin.trim()
 }).filter(Boolean)
 
 function getAllowedOrigin(req) {
-	var requestOrigin = req && req.headers ? req.headers.origin : null
+    var requestOrigin = req && req.headers ? req.headers.origin : null
 
-	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
-		return requestOrigin
-	}
+    if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
+        return requestOrigin
+    }
 
-	return null
+    return null
 }
 
 function setCorsHeaders(req, res) {
-	var allowedOrigin = getAllowedOrigin(req)
+    var allowedOrigin = getAllowedOrigin(req)
 
-	if (!allowedOrigin) {
-		return false
-	}
+    if (!allowedOrigin) {
+        return false
+    }
 
-	res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
 
-	var vary = res.getHeader('Vary')
-	if (!vary) {
-		res.setHeader('Vary', 'Origin')
-	} else if (String(vary).indexOf('Origin') === -1) {
-		res.setHeader('Vary', String(vary) + ', Origin')
-	}
+    var vary = res.getHeader('Vary')
+    if (!vary) {
+        res.setHeader('Vary', 'Origin')
+    } else if (String(vary).indexOf('Origin') === -1) {
+        res.setHeader('Vary', String(vary) + ', Origin')
+    }
 
-	res.setHeader('Access-Control-Allow-Credentials', 'true')
-	res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
 
-	return true
+    return true
 }
 
 function setSecurityHeaders(req, res, next) {
-	// Ensure this security header is present on every /app response, including
-	// redirects, rendered views, JSON responses, and early returns.
-	if (!res.getHeader('X-Content-Type-Options')) {
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-	}
+    if (!res.getHeader('X-Content-Type-Options')) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+    }
 
-	// Always emit an anti-clickjacking header for browser-rendered responses.
-	// Using SAMEORIGIN preserves current functionality while preventing framing
-	// by third-party sites.
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
-	}
+    if (!res.getHeader('Content-Security-Policy')) {
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
+    }
 
-	if ((req.secure || req.headers['x-forwarded-proto'] === 'https') && !res.getHeader('Strict-Transport-Security')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
 
-	next()
+    next()
 }
 
 function corsAndSecurityMiddleware(req, res, next) {
-	setCorsHeaders(req, res)
-	setSecurityHeaders(req, res, next)
+    setCorsHeaders(req, res)
+    setSecurityHeaders(req, res, next)
 }
 
 module.exports = function (app) {
-	if (app && typeof app.set === 'function') {
-		app.set('trust proxy', 1)
-		app.set('env', process.env.NODE_ENV || 'development')
-	}
+    if (app && typeof app.set === 'function') {
+        app.set('trust proxy', 1)
+        app.set('env', process.env.NODE_ENV || 'development')
+    }
 
-	// Apply headers before any route handler can write the response.
-	router.use(corsAndSecurityMiddleware)
+    router.use(corsAndSecurityMiddleware)
 
-	router.options('*', function (req, res) {
-		if (setCorsHeaders(req, res)) {
-			return res.sendStatus(204)
-		}
+    router.options('*', function (req, res) {
+        if (setCorsHeaders(req, res)) {
+            return res.sendStatus(204)
+        }
 
-		return res.sendStatus(405)
-	})
+        return res.sendStatus(405)
+    })
 
-	router.get('/', authHandler.isAuthenticated, function (req, res) {
-		res.redirect('/learn')
-	})
+    router.get('/', authHandler.isAuthenticated, function (req, res) {
+        res.redirect('/learn')
+    })
 
-	router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/usersearch', {
-			output: null
-		})
-	})
+    router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
+        res.render('app/usersearch', {
+            output: null
+        })
+    })
 
-	router.get('/ping', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/ping', {
-			output: null
-		})
-	})
+    router.get('/ping', authHandler.isAuthenticated, function (req, res) {
+        res.render('app/ping', {
+            output: null
+        })
+    })
 
-	router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/bulkproducts', {legacy: req.query.legacy})
-	})
+    router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
+        res.render('app/bulkproducts', {legacy: req.query.legacy})
+    })
 
-	// Defense-in-depth: set the framing header directly on the vulnerable
-	// products view path so the response keeps the header even if middleware is
-	// bypassed by a different mount order or future refactor.
-	router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-		next()
-	}, appHandler.listProducts)
+    router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
+        if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+            res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        }
 
-	router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
+        next()
+    }, appHandler.listProducts)
 
-	router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
+    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
 
-	router.get('/calc', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/calc', {output: null})
-	})
+    router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
-	router.get('/admin', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/admin', {
-			admin: (req.user.role == 'admin')
-		})
-	})
+    router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+        res.render('app/calc', {output: null})
+    })
 
-	router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
+    router.get('/admin', authHandler.isAuthenticated, function (req, res) {
+        res.render('app/admin', {
+            admin: (req.user.role == 'admin')
+        })
+    })
 
-	router.get('/admin/users', authHandler.isAuthenticated, function (req, res) {
-		res.render('app/adminusers')
-	})
+    router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
 
-	router.get('/redirect', appHandler.redirect)
+    router.get('/admin/users', authHandler.isAuthenticated, function (req, res) {
+        res.render('app/adminusers')
+    })
 
-	// POST /app/usersearch is the DAST-identified path; explicitly set the
-	// header here as a defense-in-depth safeguard in case middleware is bypassed
-	// by another mounting path or earlier response termination.
-	router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
-		setCorsHeaders(req, res)
-		next()
-	}, function (req, res, next) {
-		if (!res.getHeader('X-Content-Type-Options')) {
-			res.setHeader('X-Content-Type-Options', 'nosniff')
-		}
+    router.get('/redirect', appHandler.redirect)
 
-		next()
-	}, appHandler.userSearch)
+    router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    }, function (req, res, next) {
+        if (!res.getHeader('X-Content-Type-Options')) {
+            res.setHeader('X-Content-Type-Options', 'nosniff')
+        }
 
-	router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
+        next()
+    }, appHandler.userSearch)
 
-	router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
+    router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
 
-	router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
+    router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
-	router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
 
-	router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
+    router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
-	router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
+    router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
 
-	router.post('/bulkproductslegacy', authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
+    router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
 
-	return router
+    router.post('/bulkproductslegacy', authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
+
+    return router
 }
