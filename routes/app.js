@@ -22,20 +22,23 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    // Prevent clickjacking on all /app routes, including rendered pages such as /app/calc
+    var csp = "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+
+    // Set headers on every /app response path, including rendered pages like /app/calc.
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    // Modern browsers also honor CSP frame-ancestors; keep both for defense-in-depth.
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+    res.setHeader('Content-Security-Policy', csp)
     res.setHeader('X-Content-Type-Options', 'nosniff')
 
-    // HSTS should be emitted for all /app responses so browsers learn to use HTTPS
-    // even if the app is deployed behind a TLS-terminating proxy or the request
-    // is not marked secure by the current Node process.
+    // Preserve HSTS if it is not already present.
     if (!res.getHeader('Strict-Transport-Security')) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
 
     next()
+}
+
+function applySecurityHeaders(req, res, next) {
+    setSecurityHeaders(req, res, next)
 }
 
 module.exports = function (app) {
@@ -44,7 +47,7 @@ module.exports = function (app) {
     }
 
     // Apply security headers before any route handlers so all responses inherit them.
-    router.use(setSecurityHeaders)
+    router.use(applySecurityHeaders)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
@@ -76,6 +79,9 @@ module.exports = function (app) {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+        // Re-assert the CSP on the rendered response to cover any downstream middleware
+        // or response handling that could otherwise omit headers.
+        setSecurityHeaders(req, res, function () {})
         res.render('app/calc',{output:null})
     })
 
@@ -117,9 +123,9 @@ module.exports = function (app) {
         next()
     }, appHandler.calc)
 
-    router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts);
+    router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts)
 
-    router.post('/bulkproductslegacy',authHandler.isAuthenticated, appHandler.bulkProductsLegacy);
+    router.post('/bulkproductslegacy',authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
 
     return router
 }
