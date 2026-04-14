@@ -39,6 +39,7 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
+    // Enforce clickjacking protection on all /app routes.
     if (!res.getHeader('X-Frame-Options')) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
@@ -70,6 +71,7 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
+    // Attach protection before any route handler can render a response.
     router.use(corsAndSecurityMiddleware)
 
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {
@@ -109,6 +111,9 @@ module.exports = function (app) {
         setCorsHeaders(req, res)
         if (!res.getHeader('X-Content-Type-Options')) {
             res.setHeader('X-Content-Type-Options', 'nosniff')
+        }
+        if (!res.getHeader('X-Frame-Options')) {
+            res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         }
         res.render('app/calc', {output: null})
     })

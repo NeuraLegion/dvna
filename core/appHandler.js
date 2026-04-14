@@ -330,8 +330,9 @@ module.exports.calc = function (req, res) {
 	if (!res.getHeader('X-Content-Type-Options')) {
 		res.setHeader('X-Content-Type-Options', 'nosniff')
 	}
-	// Keep explicit header-setting here so even direct handler invocation sends nosniff.
+	// Keep explicit header-setting here so even direct handler invocation sends clickjacking protection.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 
 	if (req.body.eqn) {
 		res.render('app/calc', {
