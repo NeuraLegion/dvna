@@ -13,7 +13,7 @@ function setCorsHeaders(req, res) {
         res.setHeader('Access-Control-Allow-Origin', requestOrigin)
         res.setHeader('Vary', 'Origin')
         res.setHeader('Access-Control-Allow-Credentials', 'true')
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
         return true
     }
@@ -63,6 +63,12 @@ module.exports = function (app) {
         next()
     })
 
+    router.options('/calc', authHandler.isAuthenticated, function (req, res) {
+        setCorsHeaders(req, res)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        res.sendStatus(204)
+    })
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.setHeader('X-Content-Type-Options', 'nosniff')
         res.redirect('/learn')
@@ -98,6 +104,10 @@ module.exports = function (app) {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+        // Ensure CORS is applied on the rendered GET page when the request comes
+        // from a trusted origin, matching the POST /calc behavior.
+        setCorsHeaders(req, res)
+
         // Re-assert the security headers immediately before rendering to ensure
         // the response always carries nosniff even if another middleware altered them.
         setSecurityHeaders(req, res, function () {})
