@@ -65,6 +65,15 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
+    app.use('/app', function (req, res, next) {
+        setSecurityHeaders(req, res, next)
+    })
+
+    app.use('/app', function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    })
+
     app.use(function (err, req, res, next) {
         if (err) {
             console.error('Request failed:', err && err.message ? err.message : err)
@@ -80,15 +89,6 @@ module.exports = function (app) {
                 product: {}
             }
         })
-    })
-
-    router.use(function (req, res, next) {
-        setSecurityHeaders(req, res, next)
-    })
-
-    router.use(function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
     })
 
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {
