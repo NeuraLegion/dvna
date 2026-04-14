@@ -40,15 +40,14 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    // Apply response security headers early for every /app request path so they
-    // are present on rendered pages, redirects, and POST responses such as
-    // /app/usersearch.
-    if (!res.getHeader('X-Frame-Options')) {
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    }
-
+    // Ensure this security header is present on every /app response, including
+    // redirects, rendered views, JSON responses, and early returns.
     if (!res.getHeader('X-Content-Type-Options')) {
         res.setHeader('X-Content-Type-Options', 'nosniff')
+    }
+
+    if (!res.getHeader('X-Frame-Options')) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
 
     if (!res.getHeader('Content-Security-Policy')) {
@@ -73,8 +72,7 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Ensure the header is set for all /app routes before any handler can end
-    // the response.
+    // Apply headers before any route handler can write the response.
     router.use(corsAndSecurityMiddleware)
 
     router.options('*', function (req, res) {
@@ -129,9 +127,16 @@ module.exports = function (app) {
 
     router.get('/redirect', appHandler.redirect)
 
-    // POST /app/usersearch is the DAST-identified path; the middleware above
-    // guarantees the CSP header is emitted even for handler-rendered responses.
-    router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
+    // POST /app/usersearch is the DAST-identified path; explicitly set the
+    // header here as a defense-in-depth safeguard in case middleware is bypassed
+    // by another mounting path or earlier response termination.
+    router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
+        if (!res.getHeader('X-Content-Type-Options')) {
+            res.setHeader('X-Content-Type-Options', 'nosniff')
+        }
+
+        next()
+    }, appHandler.userSearch)
 
     router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
 

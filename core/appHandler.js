@@ -6,97 +6,6 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
-var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
-	return origin.trim()
-}).filter(Boolean)
-
-function getAllowedOrigin(req) {
-	var requestOrigin = req && req.headers ? req.headers.origin : null
-	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
-		return requestOrigin
-	}
-	return null
-}
-
-function applyCorsHeaders(req, res) {
-	var allowedOrigin = getAllowedOrigin(req)
-	if (!allowedOrigin) {
-		return false
-	}
-
-	if (!res.getHeader('Access-Control-Allow-Origin')) {
-		res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
-	}
-
-	if (!res.getHeader('Vary')) {
-		res.setHeader('Vary', 'Origin')
-	} else if (String(res.getHeader('Vary')).indexOf('Origin') === -1) {
-		res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
-	}
-
-	if (!res.getHeader('Access-Control-Allow-Credentials')) {
-		res.setHeader('Access-Control-Allow-Credentials', 'true')
-	}
-
-	return true
-}
-
-function logDbError(context, err) {
-	var message = err && err.message ? err.message : 'unknown error'
-	console.error(context + ': ' + message)
-	if (err && err.name) {
-		console.error(context + ': ' + err.name)
-	}
-}
-
-function applyClickjackingProtection(res) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "frame-ancestors 'self'")
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-}
-
-function applyResponseSecurityHeaders(res) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	if (res.req && (res.req.secure || res.req.headers['x-forwarded-proto'] === 'https')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
-}
-
-function applyPingSecurityHeaders(res) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	if (res.req && (res.req.secure || res.req.headers['x-forwarded-proto'] === 'https')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
-}
-
-function applyAppPageSecurityHeaders(res) {
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-	if (res.req && (res.req.secure || res.req.headers['x-forwarded-proto'] === 'https')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
-}
-
-function renderModifyProductError(req, res, product) {
-	applyAppPageSecurityHeaders(res)
-	req.flash('danger', 'Unable to save product')
-	res.render('app/modifyproduct', {
-		output: {
-			product: product
-		}
-	})
-}
-
-function handleModifyProductError(req, res, product, err) {
-	logDbError('modifyProductSubmit failed', err)
-	renderModifyProductError(req, res, product)
-}
-
 function isValidPingTarget(address) {
 	if (typeof address !== 'string') {
 		return false
@@ -108,7 +17,7 @@ function isValidPingTarget(address) {
 	}
 
 	// Allow IPv4, IPv6, and hostnames; avoid shell metacharacters entirely.
-	var ipv4 = /^(?:25[0-5]|2-4\d|1?\d?\d)(?:\.(?:25[0-5]|2[4]\d|1?\d?\d)){3}$/
+	var ipv4 = /^(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
 	var ipv6 = /^\[[0-9a-fA-F:]+\]$|^[0-9a-fA-F:]+$/
 	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/
 
@@ -116,7 +25,9 @@ function isValidPingTarget(address) {
 }
 
 module.exports.userSearch = function (req, res) {
-	applyResponseSecurityHeaders(res)
+	// Defense-in-depth: ensure the browser does not MIME-sniff the response
+	// even if this route is reached through an alternate mount path.
+	res.setHeader('X-Content-Type-Options', 'nosniff')
 
 	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
@@ -139,7 +50,6 @@ module.exports.userSearch = function (req, res) {
 			})
 		}
 	}).catch(err => {
-		logDbError('userSearch failed', err)
 		req.flash('danger', 'Internal Error')
 		res.render('app/usersearch', {
 			output: null
@@ -148,7 +58,6 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	applyPingSecurityHeaders(res)
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 
 	var address = req.body.address
@@ -162,8 +71,6 @@ module.exports.ping = function (req, res) {
 
 	address = address.trim()
 	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
-		applyPingSecurityHeaders(res)
-		res.setHeader('X-Content-Type-Options', 'nosniff')
 		var output = stdout + stderr
 		res.render('app/ping', {
 			output: output
@@ -172,24 +79,12 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
-	applyCorsHeaders(req, res)
-	applyClickjackingProtection(res)
-	res.setHeader('X-Content-Type-Options', 'nosniff')
-
 	db.Product.findAll().then(products => {
 		output = {
 			products: products
 		}
 		res.render('app/products', {
 			output: output
-		})
-	}).catch(err => {
-		logDbError('listProducts failed', err)
-		req.flash('danger', 'Unable to load products')
-		res.render('app/products', {
-			output: {
-				products: []
-			}
 		})
 	})
 }
@@ -209,20 +104,10 @@ module.exports.productSearch = function (req, res) {
 		res.render('app/products', {
 			output: output
 		})
-	}).catch(err => {
-		logDbError('productSearch failed', err)
-		req.flash('danger', 'Unable to search products')
-		res.render('app/products', {
-			output: {
-				products: [],
-				searchTerm: req.body.name
-			}
-		})
 	})
 }
 
 module.exports.modifyProduct = function (req, res) {
-	applyAppPageSecurityHeaders(res)
 	if (!req.query.id || req.query.id == '') {
 		output = {
 			product: {}
@@ -245,20 +130,11 @@ module.exports.modifyProduct = function (req, res) {
 			res.render('app/modifyproduct', {
 				output: output
 			})
-		}).catch(err => {
-			logDbError('modifyProduct failed', err)
-			req.flash('danger', 'Unable to load product')
-			res.render('app/modifyproduct', {
-				output: {
-					product: {}
-				}
-			})
 		})
 	}
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
-	applyAppPageSecurityHeaders(res)
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
@@ -280,28 +156,19 @@ module.exports.modifyProductSubmit = function (req, res) {
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
-			handleModifyProductError(req, res, product, err)
-		})
-	}).catch(err => {
-		logDbError('modifyProductSubmit lookup failed', err)
-		req.flash('danger', 'Unable to save product')
-		applyAppPageSecurityHeaders(res)
-		res.render('app/modifyproduct', {
-			output: {
-				product: {
-					id: req.body.id,
-					code: req.body.code,
-					name: req.body.name,
-					description: req.body.description,
-					tags: req.body.tags
-				}
+			console.error('modifyProductSubmit failed:', err)
+			output = {
+				product: product
 			}
+			req.flash('danger', 'Unable to save product')
+			res.render('app/modifyproduct', {
+				output: output
+			})
 		})
 	})
 }
 
 module.exports.userEdit = function (req, res) {
-	applyAppPageSecurityHeaders(res)
 	res.render('app/useredit', {
 		userId: req.user.id,
 		userEmail: req.user.email,
@@ -341,7 +208,7 @@ module.exports.userEditSubmit = function (req, res) {
 		user.email = req.body.email
 		user.name = req.body.name
 		user.save().then(function () {
-			req.flash('success','Updated successfully')
+			req.flash('success',"Updated successfully")
 			res.render('app/useredit', {
 				userId: req.body.id,
 				userEmail: req.body.email,
@@ -360,17 +227,6 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
-	// Security headers are applied by the /app router middleware so every calc
-	// response path (including auth middleware/alternate flows) carries CSP.
-	applyAppPageSecurityHeaders(res)
-	applyCorsHeaders(req, res)
-	if (!res.getHeader('X-Content-Type-Options')) {
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-	}
-	// Keep explicit header-setting here so even direct handler invocation sends clickjacking protection.
-	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
-
 	if (req.body.eqn) {
 		res.render('app/calc', {
 			output: mathjs.eval(req.body.eqn)
