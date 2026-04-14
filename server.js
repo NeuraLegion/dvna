@@ -1,29 +1,38 @@
 var express = require('express')
-var app = express()
-var session = require('express-session')
-var bodyParser = require('body-parser')
-var fileUpload = require('express-fileupload')
-var flash = require('connect-flash')
 var path = require('path')
+var logger = require('morgan')
+var cookieParser = require('cookie-parser')
+var bodyParser = require('body-parser')
+var session = require('express-session')
+var passport = require('passport')
+var flash = require('connect-flash')
 
-var allowedOrigins = [
-    'http://localhost:9090',
-    'http://127.0.0.1:9090'
-]
+var app = express()
 
-app.use(function (req, res, next) {
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+// If the app is deployed behind a reverse proxy / load balancer, trust it so
+// Express can correctly detect HTTPS and apply secure cookies.
+app.set('trust proxy', 1)
 
-    var origin = req.headers.origin
-    if (origin && allowedOrigins.indexOf(origin) !== -1) {
-        res.setHeader('Access-Control-Allow-Origin', origin)
-        res.setHeader('Vary', 'Origin')
-    }
+app.use(logger('dev'))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cookieParser())
 
-    next()
-})
+app.use(session({
+	secret: process.env.SESSION_SECRET || 'change-me-in-production',
+	resave: false,
+	saveUninitialized: false,
+	cookie: {
+		secure: true,
+		httpOnly: true,
+		sameSite: 'lax'
+	}
+}))
+
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(flash())
+
+app.use(express.static(path.join(__dirname, 'public')))
 
 module.exports = app
