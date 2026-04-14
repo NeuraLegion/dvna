@@ -2,6 +2,39 @@ var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 
+var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
+	return origin.trim()
+}).filter(Boolean)
+
+function getAllowedOrigin(req) {
+	var requestOrigin = req && req.headers ? req.headers.origin : null
+
+	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
+		return requestOrigin
+	}
+
+	return null
+}
+
+function setCorsHeaders(req, res) {
+	var allowedOrigin = getAllowedOrigin(req)
+
+	if (!allowedOrigin) {
+		return false
+	}
+
+	res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+
+	var vary = res.getHeader('Vary')
+	if (!vary) {
+		res.setHeader('Vary', 'Origin')
+	} else if (String(vary).indexOf('Origin') === -1) {
+		res.setHeader('Vary', String(vary) + ', Origin')
+	}
+
+	return true
+}
+
 function clearSessionCookie(req, res) {
 	res.clearCookie('connect.sid', {
 		path: '/',
@@ -11,7 +44,8 @@ function clearSessionCookie(req, res) {
 	})
 }
 
-function setFrameOptions(res) {
+function setFrameOptions(req, res) {
+	setCorsHeaders(req, res)
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
@@ -19,18 +53,23 @@ function setFrameOptions(res) {
 }
 
 module.exports = function (passport) {
+	router.use(function (req, res, next) {
+		setCorsHeaders(req, res)
+		next()
+	})
+
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
-		setFrameOptions(res)
+		setFrameOptions(req, res)
 		res.redirect('/learn')
 	})
 
 	router.get('/login', authHandler.isNotAuthenticated, function (req, res) {
-		setFrameOptions(res)
+		setFrameOptions(req, res)
 		res.render('login')
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
-		setFrameOptions(res)
+		setFrameOptions(req, res)
 		res.render('vulnerabilities/layout', {
 			vuln: req.params.vuln,
 			vuln_title: vulnDict[req.params.vuln],
@@ -49,17 +88,17 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
-		setFrameOptions(res)
+		setFrameOptions(req, res)
 		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
 	router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
-		setFrameOptions(res)
+		setFrameOptions(req, res)
 		res.render('register')
 	})
 
 	router.get('/logout', function (req, res) {
-		setFrameOptions(res)
+		setFrameOptions(req, res)
 		var logoutAndRedirect = function () {
 			clearSessionCookie(req, res)
 			res.redirect('/')
@@ -92,7 +131,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
-		setFrameOptions(res)
+		setFrameOptions(req, res)
 		res.render('forgotpw')
 	})
 
