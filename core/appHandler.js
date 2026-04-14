@@ -141,7 +141,8 @@ module.exports.modifyProductSubmit = function (req, res) {
 			output = {
 				product: product
 			}
-			req.flash('danger',err)
+			console.error(err)
+			req.flash('danger', 'An error occurred while saving the product.')
 			res.render('app/modifyproduct', {
 				output: output
 			})
