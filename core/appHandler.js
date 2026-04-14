@@ -265,9 +265,6 @@ module.exports.modifyProductSubmit = function (req, res) {
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
-				res.setHeader('X-Content-Type-Options', 'nosniff')
-				res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-				res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
