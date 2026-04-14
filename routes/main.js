@@ -2,6 +2,15 @@ var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 
+var allowedOrigins = [
+	'http://localhost:9090',
+	'https://localhost:9090'
+]
+
+function isTrustedOrigin (origin) {
+	return allowedOrigins.indexOf(origin) !== -1
+}
+
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
 		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
@@ -10,6 +19,14 @@ module.exports = function (passport) {
 		if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
 			res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 		}
+
+		var origin = req.headers.origin
+		if (origin && isTrustedOrigin(origin)) {
+			res.setHeader('Access-Control-Allow-Origin', origin)
+			res.setHeader('Access-Control-Allow-Credentials', 'true')
+		}
+		res.setHeader('Vary', 'Origin')
+
 		next()
 	})
 
