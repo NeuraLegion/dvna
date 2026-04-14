@@ -79,6 +79,9 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
+	// Ensure MIME-sniffing protection is present on the exact render path.
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+
 	// Ensure CSP is present on the exact render path for /app/products.
 	if (!res.getHeader('Content-Security-Policy')) {
 		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")

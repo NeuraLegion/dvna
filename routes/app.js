@@ -40,10 +40,10 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    if (!res.getHeader('X-Content-Type-Options')) {
-        res.setHeader('X-Content-Type-Options', 'nosniff')
-    }
-
+    // Always set nosniff for all /app routes. Some responses are rendered after
+    // route-specific middleware or may be reached via alternate code paths, so
+    // this must be enforced here at the middleware layer.
+    res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 
     if (!res.getHeader('Content-Security-Policy')) {
@@ -70,10 +70,7 @@ module.exports = function (app) {
         // Enforce security headers for all responses, including routes that may
         // bypass router-level middleware or render directly from handlers.
         app.use(function (req, res, next) {
-            if (!res.getHeader('X-Content-Type-Options')) {
-                res.setHeader('X-Content-Type-Options', 'nosniff')
-            }
-
+            res.setHeader('X-Content-Type-Options', 'nosniff')
             res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 
             if (!res.getHeader('Content-Security-Policy')) {
@@ -119,6 +116,8 @@ module.exports = function (app) {
     })
 
     router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+
         if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
             res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         }
