@@ -1,12 +1,7 @@
 var express = require('express')
-var session = require('express-session')
 var path = require('path')
 var app = express()
 
-app.set('trust proxy', 1)
-
-// Security headers must be applied globally so every response path includes them.
-// HSTS should only be sent when the request is served over HTTPS.
 app.use(function (req, res, next) {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 
@@ -15,11 +10,9 @@ app.use(function (req, res, next) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
 
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+
     next()
 })
 
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
-
-// existing middleware / route setup continues below
 module.exports = app
