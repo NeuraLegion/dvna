@@ -19,7 +19,7 @@ function isValidPingTarget(address) {
 	// Allow IPv4, IPv6, and hostnames; avoid shell metacharacters entirely.
 	var ipv4 = /^(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
 	var ipv6 = /^\[[0-9a-fA-F:]+\]$|^[0-9a-fA-F:]+$/
-	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/
+	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$ /
 
 	return ipv4.test(address) || ipv6.test(address) || hostname.test(address)
 }
@@ -227,8 +227,8 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
-	// Defensive header set here as well, so the rendered response is protected
-	// even if upstream middleware is bypassed or the route is mounted elsewhere.
+	// The route middleware already sets X-Content-Type-Options globally for /app,
+	// but keep it here as a defensive guarantee for direct invocation paths.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 
