@@ -35,11 +35,17 @@ function setCspHeader(req, res, next) {
     next()
 }
 
+function setNoSniffHeader(req, res, next) {
+    res.set('X-Content-Type-Options', 'nosniff')
+    next()
+}
+
 module.exports = function () {
     router.use(setCorsHeaders)
     router.use(setFrameOptionsHeader)
     router.use(setHstsHeader)
     router.use(setCspHeader)
+    router.use(setNoSniffHeader)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
