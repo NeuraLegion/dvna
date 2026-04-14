@@ -1,53 +1,57 @@
 var express = require('express')
 var path = require('path')
-var favicon = require('serve-favicon')
 var logger = require('morgan')
 var cookieParser = require('cookie-parser')
 var bodyParser = require('body-parser')
-var flash = require('connect-flash')
 var session = require('express-session')
 var passport = require('passport')
+var flash = require('connect-flash')
 
-var config = require('./config/server')
-var routes = require('./routes')
+var isHttpsRequest = require('./core/isHttpsRequest')
 
 var app = express()
 
 app.set('trust proxy', 1)
+app.set('env', process.env.NODE_ENV || 'development')
 
-function isHttpsRequest(req) {
-    if (req.secure) {
-        return true
-    }
-
-    var forwardedProto = req.headers['x-forwarded-proto']
-    if (typeof forwardedProto === 'string' && forwardedProto.split(',')[0].trim().toLowerCase() === 'https') {
-        return true
-    }
-
-    return false
-}
-
-// Redirect plain HTTP requests before session middleware runs so the session
-// cookie is never delivered over an insecure channel.
 app.use(function (req, res, next) {
     if (process.env.NODE_ENV === 'production' && !isHttpsRequest(req)) {
         return res.redirect(301, 'https://' + req.headers.host + req.originalUrl)
+    }
+    next()
+})
+
+app.use(function (req, res, next) {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Referrer-Policy', 'same-origin')
+
+    if (isHttpsRequest(req)) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
 
     next()
 })
 
-app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))
-app.use(cookieParser())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
-app.use(session(config.session))
+app.use(cookieParser())
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'development-secret',
+    resave: false,
+    saveUninitialized: false,
+    proxy: true,
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    }
+}))
 app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
 
-app.use('/', routes)
+app.use('/app', require('./routes/app'))
 
 module.exports = app
