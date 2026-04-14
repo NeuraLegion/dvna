@@ -21,14 +21,12 @@ function setCorsHeaders(req, res) {
     return false
 }
 
-function corsMiddleware(req, res, next) {
-    setCorsHeaders(req, res)
-
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(204)
+function isHttpsRequest(req) {
+    if (req.secure) {
+        return true
     }
 
-    next()
+    return req.headers['x-forwarded-proto'] === 'https'
 }
 
 function securityHeadersMiddleware(req, res, next) {
@@ -36,8 +34,18 @@ function securityHeadersMiddleware(req, res, next) {
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
     res.setHeader('X-Content-Type-Options', 'nosniff')
 
-    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    if (isHttpsRequest(req) || process.env.NODE_ENV === 'production') {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
+
+    next()
+}
+
+function corsMiddleware(req, res, next) {
+    setCorsHeaders(req, res)
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204)
     }
 
     next()
@@ -49,9 +57,9 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Apply clickjacking protection to all /app responses before any route handler.
-    app.use('/app', corsMiddleware)
+    // Apply security headers to all /app responses before any route handler runs.
     app.use('/app', securityHeadersMiddleware)
+    app.use('/app', corsMiddleware)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
