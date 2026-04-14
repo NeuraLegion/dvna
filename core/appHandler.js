@@ -77,6 +77,8 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+
 	db.Product.findAll().then(products => {
 		output = {
 			products: products
