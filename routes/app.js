@@ -74,6 +74,14 @@ module.exports = function (app) {
         setSecurityHeaders(req, res, next)
     })
 
+    // Apply CORS headers on every /app request when the request origin is trusted.
+    // This ensures the DAST-observed /app/calc POST response includes the header
+    // even if the handler sends the response directly.
+    router.use(function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    })
+
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {
         setCorsHeaders(req, res)
         res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -158,9 +166,7 @@ module.exports = function (app) {
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
-    // Do not rely on a pre-handler callback for response security headers here.
-    // The shared router.use() middleware above ensures /app/calc always gets
-    // X-Content-Type-Options: nosniff, even if the handler response path changes.
+    // Ensure the CORS header is present on the POST response path used by the DAST finding.
     router.post('/calc', authHandler.isAuthenticated, function (req, res) {
         setCorsHeaders(req, res)
         appHandler.calc(req, res)
