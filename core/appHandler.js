@@ -1,13 +1,35 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-const exec = require('child_process').exec;
+const execFile = require('child_process').execFile;
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function isValidPingTarget(address) {
+	if (typeof address !== 'string') {
+		return false
+	}
+
+	address = address.trim()
+	if (!address) {
+		return false
+	}
+
+	// Allow IPv4, IPv6, and hostnames; avoid shell metacharacters entirely.
+	var ipv4 = /^(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
+	var ipv6 = /^\[[0-9a-fA-F:]+\]$|^[0-9a-fA-F:]+$/
+	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/
+
+	return ipv4.test(address) || ipv6.test(address) || hostname.test(address)
+}
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	// Defense-in-depth: ensure the browser does not MIME-sniff the response
+	// even if this route is reached through an alternate mount path.
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+
+	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
 		model: db.User
 	}).then(user => {
@@ -36,8 +58,20 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
-		output = stdout + stderr
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+
+	var address = req.body.address
+	if (!isValidPingTarget(address)) {
+		req.flash('warning', 'Invalid address')
+		res.render('app/ping', {
+			output: 'Invalid address'
+		})
+		return
+	}
+
+	address = address.trim()
+	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
+		var output = stdout + stderr
 		res.render('app/ping', {
 			output: output
 		})
@@ -45,6 +79,18 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
+	// Ensure MIME-sniffing protection is present on the exact render path.
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+
+	// Ensure CSP is present on the exact render path for /app/products.
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
+	}
+
+	// Set anti-clickjacking header here as well so the vulnerable page keeps the
+	// protection even if router-level middleware is bypassed.
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+
 	db.Product.findAll().then(products => {
 		output = {
 			products: products
@@ -122,10 +168,11 @@ module.exports.modifyProductSubmit = function (req, res) {
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
+			console.error('modifyProductSubmit failed:', err)
 			output = {
 				product: product
 			}
-			req.flash('danger',err)
+			req.flash('danger', 'Unable to save product')
 			res.render('app/modifyproduct', {
 				output: output
 			})
@@ -145,7 +192,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.body.id
-		}		
+		} 		
 	}).then(user =>{
 		if(req.body.password.length>0){
 			if(req.body.password.length>0){

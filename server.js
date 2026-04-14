@@ -1,42 +1,56 @@
-var express = require('express')
-var bodyParser = require('body-parser')
-var passport = require('passport')
-var session = require('express-session')
-var ejs = require('ejs')
-var morgan = require('morgan')
-const fileUpload = require('express-fileupload');
-var config = require('./config/server')
+var app = require('./app')
+var http = require('http')
+var debug = require('debug')('dvna:server')
 
-//Initialize Express
-var app = express()
-require('./core/passport')(passport)
-app.use(express.static('public'))
-app.set('view engine','ejs')
-app.use(morgan('tiny'))
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(fileUpload());
+var port = normalizePort(process.env.PORT || '3000')
+app.set('port', port)
 
-// Enable for Reverse proxy support
-// app.set('trust proxy', 1) 
+var server = http.createServer(app)
+server.listen(port)
+server.on('error', onError)
+server.on('listening', onListening)
 
-// Intialize Session
-app.use(session({
-  secret: 'keyboard cat',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: false }
-}))
+function normalizePort(val) {
+	var port = parseInt(val, 10)
 
-// Initialize Passport
-app.use(passport.initialize())
-app.use(passport.session())
+	if (isNaN(port)) {
+		return val
+	}
 
-// Initialize express-flash
-app.use(require('express-flash')());
+	if (port >= 0) {
+		return port
+	}
 
-// Routing
-app.use('/app',require('./routes/app')())
-app.use('/',require('./routes/main')(passport))
+	return false
+}
 
-// Start Server
-app.listen(config.port, config.listen)
+function onError(error) {
+	if (error.syscall !== 'listen') {
+		throw error
+	}
+
+	var bind = typeof port === 'string'
+		? 'Pipe ' + port
+		: 'Port ' + port
+
+	switch (error.code) {
+		case 'EACCES':
+			console.error(bind + ' requires elevated privileges')
+			process.exit(1)
+			break
+		case 'EADDRINUSE':
+			console.error(bind + ' is already in use')
+			process.exit(1)
+			break
+		default:
+			throw error
+	}
+}
+
+function onListening() {
+	var addr = server.address()
+	var bind = typeof addr === 'string'
+		? 'pipe ' + addr
+		: 'port ' + addr.port
+	debug('Listening on ' + bind)
+}
