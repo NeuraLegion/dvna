@@ -52,11 +52,6 @@ function setSecurityHeaders(req, res, next) {
         res.setHeader('X-Content-Type-Options', 'nosniff')
     }
 
-    var isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https'
-    if (isHttps && !res.getHeader('Strict-Transport-Security')) {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    }
-
     next()
 }
 
