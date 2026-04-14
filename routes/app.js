@@ -6,36 +6,46 @@ var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (o
     return origin.trim()
 }).filter(Boolean)
 
-function setCorsHeaders(req, res) {
-    var requestOrigin = req.headers.origin
+function getAllowedOrigin(req) {
+    var requestOrigin = req && req.headers ? req.headers.origin : null
 
     if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
-        if (!res.getHeader('Access-Control-Allow-Origin')) {
-            res.setHeader('Access-Control-Allow-Origin', requestOrigin)
-        }
-
-        if (!res.getHeader('Vary')) {
-            res.setHeader('Vary', 'Origin')
-        } else if (String(res.getHeader('Vary')).indexOf('Origin') === -1) {
-            res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
-        }
-
-        if (!res.getHeader('Access-Control-Allow-Credentials')) {
-            res.setHeader('Access-Control-Allow-Credentials', 'true')
-        }
-
-        if (!res.getHeader('Access-Control-Allow-Methods')) {
-            res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        }
-
-        if (!res.getHeader('Access-Control-Allow-Headers')) {
-            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-        }
-
-        return true
+        return requestOrigin
     }
 
-    return false
+    return null
+}
+
+function setCorsHeaders(req, res) {
+    var allowedOrigin = getAllowedOrigin(req)
+
+    if (!allowedOrigin) {
+        return false
+    }
+
+    if (!res.getHeader('Access-Control-Allow-Origin')) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+    }
+
+    if (!res.getHeader('Vary')) {
+        res.setHeader('Vary', 'Origin')
+    } else if (String(res.getHeader('Vary')).indexOf('Origin') === -1) {
+        res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
+    }
+
+    if (!res.getHeader('Access-Control-Allow-Credentials')) {
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+    }
+
+    if (!res.getHeader('Access-Control-Allow-Methods')) {
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    }
+
+    if (!res.getHeader('Access-Control-Allow-Headers')) {
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+    }
+
+    return true
 }
 
 function setSecurityHeaders(req, res, next) {
@@ -73,9 +83,7 @@ module.exports = function (app) {
     router.use(corsAndSecurityMiddleware)
 
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {
-        if (setCorsHeaders(req, res)) {
-            return res.sendStatus(204)
-        }
+        setCorsHeaders(req, res)
         return res.sendStatus(204)
     })
 
@@ -143,7 +151,10 @@ module.exports = function (app) {
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
-    router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
+    router.post('/calc', authHandler.isAuthenticated, function (req, res) {
+        setCorsHeaders(req, res)
+        appHandler.calc(req, res)
+    })
 
     router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
 
