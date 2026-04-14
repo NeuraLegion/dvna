@@ -20,9 +20,20 @@ function setFrameOptionsHeader(req, res, next) {
     next()
 }
 
+function setHstsHeader(req, res, next) {
+    var isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https'
+
+    if (isHttps) {
+        res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
+
+    next()
+}
+
 module.exports = function () {
     router.use(setCorsHeaders)
     router.use(setFrameOptionsHeader)
+    router.use(setHstsHeader)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
