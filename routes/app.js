@@ -23,9 +23,7 @@ function setCorsHeaders(req, res) {
         return false
     }
 
-    if (!res.getHeader('Access-Control-Allow-Origin')) {
-        res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
-    }
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
 
     if (!res.getHeader('Vary')) {
         res.setHeader('Vary', 'Origin')
@@ -33,17 +31,9 @@ function setCorsHeaders(req, res) {
         res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
     }
 
-    if (!res.getHeader('Access-Control-Allow-Credentials')) {
-        res.setHeader('Access-Control-Allow-Credentials', 'true')
-    }
-
-    if (!res.getHeader('Access-Control-Allow-Methods')) {
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    }
-
-    if (!res.getHeader('Access-Control-Allow-Headers')) {
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
 
     return true
 }
@@ -78,6 +68,11 @@ module.exports = function (app) {
     router.use(corsAndSecurityMiddleware)
 
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {
+        setCorsHeaders(req, res)
+        return res.sendStatus(204)
+    })
+
+    router.options('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
         setCorsHeaders(req, res)
         return res.sendStatus(204)
     })
@@ -142,7 +137,10 @@ module.exports = function (app) {
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    }, appHandler.modifyProductSubmit)
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
