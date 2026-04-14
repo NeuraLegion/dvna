@@ -16,6 +16,19 @@ function getAllowedOrigin(req) {
     return null
 }
 
+function appendVaryHeader(res, headerValue) {
+    var vary = res.getHeader('Vary')
+    if (!vary) {
+        res.setHeader('Vary', headerValue)
+        return
+    }
+
+    vary = String(vary)
+    if (vary.indexOf(headerValue) === -1) {
+        res.setHeader('Vary', vary + ', ' + headerValue)
+    }
+}
+
 function setCorsHeaders(req, res) {
     var allowedOrigin = getAllowedOrigin(req)
 
@@ -24,14 +37,7 @@ function setCorsHeaders(req, res) {
     }
 
     res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
-
-    var vary = res.getHeader('Vary')
-    if (!vary) {
-        res.setHeader('Vary', 'Origin')
-    } else if (String(vary).indexOf('Origin') === -1) {
-        res.setHeader('Vary', String(vary) + ', Origin')
-    }
-
+    appendVaryHeader(res, 'Origin')
     res.setHeader('Access-Control-Allow-Credentials', 'true')
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
@@ -40,11 +46,8 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    // Always set nosniff for all /app routes. Some responses are rendered after
-    // route-specific middleware or may be reached via alternate code paths, so
-    // this must be enforced here at the middleware layer.
-    res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
 
     if (!res.getHeader('Content-Security-Policy')) {
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
@@ -70,6 +73,8 @@ module.exports = function (app) {
         // Enforce security headers for all responses, including routes that may
         // bypass router-level middleware or render directly from handlers.
         app.use(function (req, res, next) {
+            setCorsHeaders(req, res)
+
             res.setHeader('X-Content-Type-Options', 'nosniff')
             res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 
@@ -116,6 +121,8 @@ module.exports = function (app) {
     })
 
     router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+
         res.setHeader('X-Content-Type-Options', 'nosniff')
 
         if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
