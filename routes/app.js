@@ -72,6 +72,13 @@ module.exports = function (app) {
 
     router.use(corsAndSecurityMiddleware)
 
+    router.options('/calc', authHandler.isAuthenticated, function (req, res) {
+        if (setCorsHeaders(req, res)) {
+            return res.sendStatus(204)
+        }
+        return res.sendStatus(204)
+    })
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
@@ -99,6 +106,7 @@ module.exports = function (app) {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+        setCorsHeaders(req, res)
         if (!res.getHeader('X-Content-Type-Options')) {
             res.setHeader('X-Content-Type-Options', 'nosniff')
         }
