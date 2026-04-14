@@ -57,8 +57,8 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Apply the security headers to the entire /app subtree before any route handlers.
-    // This ensures GET, POST, and error responses all receive a CSP header.
+    // Apply headers at the subtree level so every /app response gets the same policy.
+    // This avoids relying on individual handlers to remember to set CORS headers.
     app.use('/app', securityHeadersMiddleware)
     app.use('/app', corsMiddleware)
 
@@ -106,6 +106,8 @@ module.exports = function (app) {
 
     router.get('/redirect', appHandler.redirect)
 
+    // Keep the explicit route-level hook as a defense-in-depth measure,
+    // but the subtree middleware above is the authoritative CORS control.
     router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
         next()
