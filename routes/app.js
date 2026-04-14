@@ -30,10 +30,16 @@ function setHstsHeader(req, res, next) {
     next()
 }
 
+function setCspHeader(req, res, next) {
+    res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+    next()
+}
+
 module.exports = function () {
     router.use(setCorsHeaders)
     router.use(setFrameOptionsHeader)
     router.use(setHstsHeader)
+    router.use(setCspHeader)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
