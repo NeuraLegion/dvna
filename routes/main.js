@@ -22,6 +22,10 @@ function setSecurityHeaders(req, res) {
 	if (!res.getHeader('X-Frame-Options')) {
 		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	}
+
+	if (!res.getHeader('Strict-Transport-Security') && (req.secure || req.headers['x-forwarded-proto'] === 'https')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
 }
 
 function clearSessionCookie(req, res) {
