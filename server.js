@@ -1,12 +1,10 @@
 var express = require('express')
 var app = express()
-var session = require('express-session')
+var config = require('./config/server')
 
-app.set('trust proxy', 1)
+app.use(function (req, res, next) {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    next()
+})
 
-app.use(session({
-  secret: 'keyboard cat',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: true }
-}))
+module.exports = app
