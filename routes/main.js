@@ -6,6 +6,8 @@ var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (o
 	return origin.trim()
 }).filter(Boolean)
 
+var cspHeaderValue = "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+
 function getAllowedOrigin(req) {
 	var requestOrigin = req && req.headers ? req.headers.origin : null
 
@@ -52,18 +54,17 @@ function clearSessionCookie(req, res) {
 	})
 }
 
-function setFrameOptions(req, res) {
+function setSecurityHeaders(req, res) {
 	setCorsHeaders(req, res)
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	res.setHeader('Content-Security-Policy', cspHeaderValue)
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
-		setCorsHeaders(req, res)
-		setFrameOptions(req, res)
+		setSecurityHeaders(req, res)
 		next()
 	})
 
@@ -134,6 +135,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		setSecurityHeaders(req, res)
 		res.render('forgotpw')
 	})
 
