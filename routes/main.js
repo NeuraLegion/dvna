@@ -2,6 +2,22 @@ var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 
+var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
+	return origin.trim()
+}).filter(Boolean)
+
+function setCorsHeaders(req, res) {
+	var requestOrigin = req.headers.origin
+
+	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
+		res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+		res.setHeader('Vary', 'Origin')
+		return true
+	}
+
+	return false
+}
+
 module.exports = function (passport) {
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
@@ -56,6 +72,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		setCorsHeaders(req, res)
 		res.render('forgotpw')
 	})
 
