@@ -4,6 +4,7 @@ const exec = require('child_process').exec;
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
+const net = require('net')
 const Op = db.Sequelize.Op
 
 module.exports.userSearch = function (req, res) {
@@ -36,7 +37,15 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
+	var address = req.body.address
+	if (!address || (net.isIP(address) !== 4 && net.isIP(address) !== 6)) {
+		res.render('app/ping', {
+			output: 'Enter a valid IPv4 or IPv6 address.'
+		})
+		return
+	}
+
+	exec('ping -c 2 ' + address, function (err, stdout, stderr) {
 		output = stdout + stderr
 		res.render('app/ping', {
 			output: output
