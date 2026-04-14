@@ -24,6 +24,9 @@ function setCorsHeaders(req, res) {
 module.exports = function () {
     router.use(function (req, res, next) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        if (req.secure) {
+            res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        }
         next()
     })
 
