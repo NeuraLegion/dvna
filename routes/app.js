@@ -2,10 +2,26 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
+var trustedOrigins = [
+    'http://localhost:9090',
+    'https://localhost:9090'
+]
+
+function isTrustedOrigin (origin) {
+    return trustedOrigins.indexOf(origin) !== -1
+}
+
 module.exports = function () {
     router.use(function (req, res, next) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
         res.setHeader('X-Content-Type-Options', 'nosniff')
+
+        var origin = req.headers.origin
+        if (origin && isTrustedOrigin(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+            res.setHeader('Vary', 'Origin')
+            res.setHeader('Access-Control-Allow-Credentials', 'true')
+        }
 
         var isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https'
         if (isSecure) {
