@@ -19,9 +19,10 @@ module.exports = function () {
         var origin = req.headers.origin
         if (origin && isTrustedOrigin(origin)) {
             res.setHeader('Access-Control-Allow-Origin', origin)
-            res.setHeader('Vary', 'Origin')
             res.setHeader('Access-Control-Allow-Credentials', 'true')
         }
+
+        res.setHeader('Vary', 'Origin')
 
         var isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https'
         if (isSecure) {
