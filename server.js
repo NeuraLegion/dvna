@@ -1,45 +1,27 @@
 var express = require('express')
-var path = require('path')
-var favicon = require('serve-favicon')
-var logger = require('morgan')
-var cookieParser = require('cookie-parser')
-var bodyParser = require('body-parser')
-var session = require('express-session')
-var passport = require('passport')
-var flash = require('connect-flash')
-var helmet = require('helmet')
-
-var index = require('./routes/index')
-var app = require('./routes/app')
-var learn = require('./routes/learn')
-var signup = require('./routes/signup')
-var login = require('./routes/login')
-var profile = require('./routes/profile')
-
 var app = express()
+var path = require('path')
+var corsOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
+    return origin.trim()
+}).filter(Boolean)
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
+app.use(function (req, res, next) {
+    var requestOrigin = req.headers.origin
 
-app.use(helmet.hsts({
-    maxAge: 15552000,
-    includeSubDomains: true
-}))
-
-app.use(helmet.contentSecurityPolicy({
-    directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://maxcdn.bootstrapcdn.com", "https://cdnjs.cloudflare.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://maxcdn.bootstrapcdn.com"],
-        imgSrc: ["'self'", "data:"],
-        fontSrc: ["'self'", "data:", "https://maxcdn.bootstrapcdn.com"],
-        connectSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        frameAncestors: ["'self'"]
+    if (requestOrigin && corsOrigins.indexOf(requestOrigin) !== -1) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+        res.setHeader('Vary', 'Origin')
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
     }
-}))
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204)
+    }
+
+    next()
+})
 
 app.use(function (req, res, next) {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
@@ -47,5 +29,4 @@ app.use(function (req, res, next) {
     next()
 })
 
-// باقي الملف unchanged if present in original source
 module.exports = app
