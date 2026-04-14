@@ -106,13 +106,6 @@ module.exports = function (app) {
 
     router.get('/redirect', appHandler.redirect)
 
-    // Reinforce the header at the route level for the reported endpoint in case
-    // another middleware stack is mounted ahead of /app or the route is exercised directly.
-    router.use('/usersearch', function (req, res, next) {
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-        next()
-    })
-
     router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
         next()
