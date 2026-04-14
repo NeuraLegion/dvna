@@ -6,6 +6,10 @@ var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (o
     return origin.trim()
 }).filter(Boolean)
 
+function isHttpsRequest(req) {
+    return req.secure || req.headers['x-forwarded-proto'] === 'https'
+}
+
 function setCorsHeaders(req, res) {
     var requestOrigin = req.headers.origin
 
@@ -37,7 +41,7 @@ function setSecurityHeaders(req, res, next) {
     res.setHeader('Content-Security-Policy', csp)
     res.setHeader('X-Content-Type-Options', 'nosniff')
 
-    if (req.secure) {
+    if (isHttpsRequest(req)) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
 
