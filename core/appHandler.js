@@ -25,6 +25,8 @@ function isValidPingTarget(address) {
 }
 
 module.exports.userSearch = function (req, res) {
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+
 	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
 		model: db.User
