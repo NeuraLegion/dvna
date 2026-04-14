@@ -135,7 +135,6 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
-		setSecurityHeaders(req, res)
 		res.render('forgotpw')
 	})
 
