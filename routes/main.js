@@ -2,6 +2,22 @@ var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 
+function setCorsHeader (req, res) {
+	var allowedOrigins = [
+		process.env.CORS_ALLOWED_ORIGIN
+	].filter(Boolean)
+
+	if (allowedOrigins.length === 0) {
+		return
+	}
+
+	var origin = req.headers.origin
+	if (allowedOrigins.indexOf(origin) !== -1) {
+		res.setHeader('Access-Control-Allow-Origin', origin)
+		res.setHeader('Vary', 'Origin')
+	}
+}
+
 module.exports = function (passport) {
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
@@ -12,6 +28,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
+		setCorsHeader(req, res)
 		res.render('vulnerabilities/layout', {
 			vuln: req.params.vuln,
 			vuln_title: vulnDict[req.params.vuln],
@@ -30,6 +47,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
+		setCorsHeader(req, res)
 		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
