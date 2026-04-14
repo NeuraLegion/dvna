@@ -40,6 +40,9 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
+    // Set the frame protections on the response object as early as possible so
+    // every /app route, including /app/usersearch, gets the header before any
+    // handler or redirect can complete the response.
     if (!res.getHeader('X-Frame-Options')) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
@@ -71,7 +74,7 @@ module.exports = function (app) {
     }
 
     // Apply to every /app route so all response paths, including auth failures
-    // and handler-rendered responses, can include the allowlisted CORS header.
+    // and handler-rendered responses, can include the security headers.
     router.use(corsAndSecurityMiddleware)
 
     router.options('*', function (req, res) {
