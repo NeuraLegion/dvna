@@ -118,6 +118,7 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
+	applyClickjackingProtection(res)
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 
 	db.Product.findAll().then(products => {
@@ -262,7 +263,7 @@ module.exports.userEditSubmit = function (req, res) {
 		user.email = req.body.email
 		user.name = req.body.name
 		user.save().then(function () {
-			req.flash('success',"Updated successfully")
+			req.flash('success','Updated successfully')
 			res.render('app/useredit', {
 				userId: req.body.id,
 				userEmail: req.body.email,

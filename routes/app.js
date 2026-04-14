@@ -62,6 +62,11 @@ module.exports = function (app) {
     app.use('/app', securityHeadersMiddleware)
     app.use('/app', corsMiddleware)
 
+    router.use(function (req, res, next) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        next()
+    })
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
