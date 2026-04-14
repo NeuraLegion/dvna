@@ -22,9 +22,11 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
+    // Prevent clickjacking on all /app routes, including rendered pages such as /app/calc
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    res.setHeader('X-Content-Type-Options', 'nosniff')
+    // Modern browsers also honor CSP frame-ancestors; keep both for defense-in-depth.
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+    res.setHeader('X-Content-Type-Options', 'nosniff')
 
     if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
@@ -38,6 +40,7 @@ module.exports = function (app) {
         app.set('trust proxy', 1)
     }
 
+    // Apply security headers before any route handlers so all responses inherit them.
     router.use(setSecurityHeaders)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
