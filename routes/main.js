@@ -105,6 +105,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		setCorsHeader(req, res)
 		res.render('forgotpw')
 	})
 
