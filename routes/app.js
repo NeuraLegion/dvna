@@ -6,10 +6,6 @@ var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (o
     return origin.trim()
 }).filter(Boolean)
 
-function isHttpsRequest(req) {
-    return req.secure || req.headers['x-forwarded-proto'] === 'https'
-}
-
 function setCorsHeaders(req, res) {
     var requestOrigin = req.headers.origin
 
@@ -25,83 +21,34 @@ function setCorsHeaders(req, res) {
     return false
 }
 
-function setSecurityHeaders(req, res, next) {
-    var csp = [
-        "default-src 'self'",
-        "script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com",
-        "style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com",
-        "img-src 'self' data:",
-        "font-src 'self' data: https://maxcdn.bootstrapcdn.com",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "frame-ancestors 'self'"
-    ].join('; ')
+function corsMiddleware(req, res, next) {
+    setCorsHeaders(req, res)
 
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    res.setHeader('Content-Security-Policy', csp)
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-
-    if (isHttpsRequest(req)) {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204)
     }
 
-    if (typeof next === 'function') {
-        next()
-    }
+    next()
 }
 
 module.exports = function (app) {
     if (app && typeof app.set === 'function') {
         app.set('trust proxy', 1)
         app.set('env', process.env.NODE_ENV || 'development')
-
-        // Defense in depth: ensure every response from this app gets the
-        // MIME-sniffing protection, including responses generated outside
-        // the /app router or by code paths that do not explicitly set it.
-        app.use(function (req, res, next) {
-            res.setHeader('X-Content-Type-Options', 'nosniff')
-            next()
-        })
     }
 
-    app.use('/app', function (req, res, next) {
-        setSecurityHeaders(req, res, next)
-    })
+    app.use('/app', corsMiddleware)
 
     app.use('/app', function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    })
-
-    app.use('/app', function (req, res, next) {
-        if (req.method === 'OPTIONS') {
-            setCorsHeaders(req, res)
-            return res.sendStatus(204)
-        }
-        next()
-    })
-
-    app.use(function (err, req, res, next) {
-        if (err) {
-            console.error('Request failed:', err && err.message ? err.message : err)
-        }
-
-        if (res.headersSent) {
-            return next(err)
-        }
-
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         res.setHeader('X-Content-Type-Options', 'nosniff')
-        req.flash('danger', 'An unexpected error occurred')
-        res.status(500).render('app/modifyproduct', {
-            output: {
-                product: {}
-            }
-        })
-    })
 
-    router.options('/calc', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        res.sendStatus(204)
+        if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+            res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        }
+
+        next()
     })
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
@@ -121,24 +68,17 @@ module.exports = function (app) {
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-        res.render('app/bulkproducts',{legacy:req.query.legacy})
+        res.render('app/bulkproducts', {legacy: req.query.legacy})
     })
 
-    router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    }, appHandler.listProducts)
+    router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
 
-    router.get('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    }, appHandler.modifyProduct)
+    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        res.render('app/calc',{output:null})
+        res.render('app/calc', {output: null})
     })
 
     router.get('/admin', authHandler.isAuthenticated, function (req, res) {
@@ -149,7 +89,7 @@ module.exports = function (app) {
 
     router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
 
-    router.get('/admin/users', authHandler.isAuthenticated, function(req, res){
+    router.get('/admin/users', authHandler.isAuthenticated, function (req, res) {
         res.render('app/adminusers')
     })
 
@@ -165,24 +105,26 @@ module.exports = function (app) {
         next()
     }, appHandler.ping)
 
-    router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
+    router.post('/products', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    }, appHandler.productSearch)
 
     router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
-        setSecurityHeaders(req, res)
         next()
     }, appHandler.modifyProductSubmit)
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
-    router.post('/calc', authHandler.isAuthenticated, function (req, res) {
+    router.post('/calc', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
-        appHandler.calc(req, res)
-    })
+        next()
+    }, appHandler.calc)
 
-    router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts)
+    router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
 
-    router.post('/bulkproductslegacy',authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
+    router.post('/bulkproductslegacy', authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
 
     return router
 }
