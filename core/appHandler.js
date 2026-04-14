@@ -14,7 +14,13 @@ function logDbError(context, err) {
 	}
 }
 
+function applyClickjackingProtection(res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('Content-Security-Policy', "frame-ancestors 'self'")
+}
+
 function renderModifyProductError(req, res, product) {
+	applyClickjackingProtection(res)
 	req.flash('danger', 'Unable to save product')
 	res.render('app/modifyproduct', {
 		output: {
@@ -130,6 +136,7 @@ module.exports.productSearch = function (req, res) {
 }
 
 module.exports.modifyProduct = function (req, res) {
+	applyClickjackingProtection(res)
 	if (!req.query.id || req.query.id == '') {
 		output = {
 			product: {}
@@ -165,6 +172,7 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
+	applyClickjackingProtection(res)
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}

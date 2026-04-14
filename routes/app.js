@@ -35,8 +35,6 @@ function isHttpsRequest(req) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    // Keep CSP strict enough to mitigate XSS while allowing the app's existing
-    // Bootstrap/CDN dependencies and inline styles used by legacy templates.
     var csp = [
         "default-src 'self'",
         "script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com",
@@ -48,13 +46,10 @@ function setSecurityHeaders(req, res, next) {
         "frame-ancestors 'self'"
     ].join('; ')
 
-    // Apply security headers for every /app response, including rendered pages
-    // and handler-generated responses such as /app/calc.
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     res.setHeader('Content-Security-Policy', csp)
     res.setHeader('X-Content-Type-Options', 'nosniff')
 
-    // Emit HSTS only when the request is actually HTTPS.
     if (isHttpsRequest(req)) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
@@ -67,12 +62,9 @@ function setSecurityHeaders(req, res, next) {
 module.exports = function (app) {
     if (app && typeof app.set === 'function') {
         app.set('trust proxy', 1)
-
-        // Prevent verbose error pages from leaking database/framework details in production.
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Generic production-safe error handler for any route that forwards errors to Express.
     app.use(function (err, req, res, next) {
         if (err) {
             console.error('Request failed:', err && err.message ? err.message : err)
@@ -90,14 +82,10 @@ module.exports = function (app) {
         })
     })
 
-    // Apply security headers before any route handlers so all responses inherit them.
     router.use(function (req, res, next) {
         setSecurityHeaders(req, res, next)
     })
 
-    // Apply CORS headers on every /app request when the request origin is trusted.
-    // This ensures the DAST-observed /app/calc POST response includes the header
-    // even if the handler sends the response directly.
     router.use(function (req, res, next) {
         setCorsHeaders(req, res)
         next()
@@ -105,37 +93,31 @@ module.exports = function (app) {
 
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {
         setCorsHeaders(req, res)
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.sendStatus(204)
     })
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.redirect('/learn')
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/usersearch', {
             output: null
         })
     })
 
     router.get('/ping', authHandler.isAuthenticated, function (req, res) {
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/ping', {
             output: null
         })
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
     router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.listProducts)
 
@@ -145,12 +127,10 @@ module.exports = function (app) {
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
         setCorsHeaders(req, res)
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/calc',{output:null})
     })
 
     router.get('/admin', authHandler.isAuthenticated, function (req, res) {
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/admin', {
             admin: (req.user.role == 'admin')
         })
@@ -159,7 +139,6 @@ module.exports = function (app) {
     router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
 
     router.get('/admin/users', authHandler.isAuthenticated, function(req, res){
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/adminusers')
     })
 
@@ -167,13 +146,11 @@ module.exports = function (app) {
 
     router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.userSearch)
 
     router.post('/ping', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
-        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.ping)
 
@@ -181,13 +158,12 @@ module.exports = function (app) {
 
     router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
-        res.setHeader('X-Content-Type-Options', 'nosniff')
+        setSecurityHeaders(req, res)
         next()
     }, appHandler.modifyProductSubmit)
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
-    // Ensure the CORS header is present on the POST response path used by the DAST finding.
     router.post('/calc', authHandler.isAuthenticated, function (req, res) {
         setCorsHeaders(req, res)
         appHandler.calc(req, res)
