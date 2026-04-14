@@ -6,6 +6,41 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
+	return origin.trim()
+}).filter(Boolean)
+
+function getAllowedOrigin(req) {
+	var requestOrigin = req && req.headers ? req.headers.origin : null
+	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
+		return requestOrigin
+	}
+	return null
+}
+
+function applyCorsHeaders(req, res) {
+	var allowedOrigin = getAllowedOrigin(req)
+	if (!allowedOrigin) {
+		return false
+	}
+
+	if (!res.getHeader('Access-Control-Allow-Origin')) {
+		res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+	}
+
+	if (!res.getHeader('Vary')) {
+		res.setHeader('Vary', 'Origin')
+	} else if (String(res.getHeader('Vary')).indexOf('Origin') === -1) {
+		res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
+	}
+
+	if (!res.getHeader('Access-Control-Allow-Credentials')) {
+		res.setHeader('Access-Control-Allow-Credentials', 'true')
+	}
+
+	return true
+}
+
 function logDbError(context, err) {
 	var message = err && err.message ? err.message : 'unknown error'
 	console.error(context + ': ' + message)
@@ -22,13 +57,13 @@ function applyClickjackingProtection(res) {
 
 function applyResponseSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
 function applyPingSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
@@ -118,6 +153,7 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
+	applyCorsHeaders(req, res)
 	applyClickjackingProtection(res)
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 

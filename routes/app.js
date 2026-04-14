@@ -10,33 +10,57 @@ function setCorsHeaders(req, res) {
     var requestOrigin = req.headers.origin
 
     if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
-        res.setHeader('Access-Control-Allow-Origin', requestOrigin)
-        res.setHeader('Vary', 'Origin')
-        res.setHeader('Access-Control-Allow-Credentials', 'true')
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        if (!res.getHeader('Access-Control-Allow-Origin')) {
+            res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+        }
+
+        if (!res.getHeader('Vary')) {
+            res.setHeader('Vary', 'Origin')
+        } else if (String(res.getHeader('Vary')).indexOf('Origin') === -1) {
+            res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
+        }
+
+        if (!res.getHeader('Access-Control-Allow-Credentials')) {
+            res.setHeader('Access-Control-Allow-Credentials', 'true')
+        }
+
+        if (!res.getHeader('Access-Control-Allow-Methods')) {
+            res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        }
+
+        if (!res.getHeader('Access-Control-Allow-Headers')) {
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        }
+
         return true
     }
 
     return false
 }
 
-function securityHeadersMiddleware(req, res, next) {
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-    res.setHeader('X-Content-Type-Options', 'nosniff')
+function setSecurityHeaders(req, res, next) {
+    if (!res.getHeader('X-Frame-Options')) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    }
+
+    if (!res.getHeader('Content-Security-Policy')) {
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+    }
+
+    if (!res.getHeader('X-Content-Type-Options')) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+    }
+
+    if (!res.getHeader('Strict-Transport-Security') && (req.secure || req.headers['x-forwarded-proto'] === 'https')) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
 
     next()
 }
 
-function corsMiddleware(req, res, next) {
+function corsAndSecurityMiddleware(req, res, next) {
     setCorsHeaders(req, res)
-
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(204)
-    }
-
-    next()
+    setSecurityHeaders(req, res, next)
 }
 
 module.exports = function (app) {
@@ -45,14 +69,7 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    app.use('/app', securityHeadersMiddleware)
-    app.use('/app', corsMiddleware)
-
-    router.use(function (req, res, next) {
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-        res.setHeader('X-Content-Type-Options', 'nosniff')
-        next()
-    })
+    router.use(corsAndSecurityMiddleware)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
@@ -98,32 +115,17 @@ module.exports = function (app) {
 
     router.get('/redirect', appHandler.redirect)
 
-    router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    }, appHandler.userSearch)
+    router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.post('/ping', authHandler.isAuthenticated, function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    }, appHandler.ping)
+    router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
 
-    router.post('/products', authHandler.isAuthenticated, function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    }, appHandler.productSearch)
+    router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    }, appHandler.modifyProductSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
-    router.post('/calc', authHandler.isAuthenticated, function (req, res, next) {
-        setCorsHeaders(req, res)
-        next()
-    }, appHandler.calc)
+    router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
 
     router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
 
