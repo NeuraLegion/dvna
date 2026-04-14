@@ -49,8 +49,6 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    // Apply clickjacking protection to every /app response path, including
-    // auth failures, redirects, renders, and handler-level early returns.
     if (!res.getHeader('X-Frame-Options')) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
@@ -77,8 +75,6 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Mount security middleware before any route definitions so every response
-    // under this router inherits X-Frame-Options.
     router.use(corsAndSecurityMiddleware)
 
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {

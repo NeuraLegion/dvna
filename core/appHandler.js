@@ -74,7 +74,7 @@ function applyAppPageSecurityHeaders(res) {
 }
 
 function renderModifyProductError(req, res, product) {
-	applyClickjackingProtection(res)
+	applyAppPageSecurityHeaders(res)
 	req.flash('danger', 'Unable to save product')
 	res.render('app/modifyproduct', {
 		output: {
@@ -210,7 +210,7 @@ module.exports.productSearch = function (req, res) {
 }
 
 module.exports.modifyProduct = function (req, res) {
-	applyClickjackingProtection(res)
+	applyAppPageSecurityHeaders(res)
 	if (!req.query.id || req.query.id == '') {
 		output = {
 			product: {}
@@ -246,7 +246,7 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
-	applyClickjackingProtection(res)
+	applyAppPageSecurityHeaders(res)
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
@@ -267,6 +267,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 				req.flash('success', 'Product added/modified!')
 				res.setHeader('X-Content-Type-Options', 'nosniff')
 				res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+				res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
@@ -275,7 +276,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 	}).catch(err => {
 		logDbError('modifyProductSubmit lookup failed', err)
 		req.flash('danger', 'Unable to save product')
-		applyClickjackingProtection(res)
+		applyAppPageSecurityHeaders(res)
 		res.render('app/modifyproduct', {
 			output: {
 				product: {
