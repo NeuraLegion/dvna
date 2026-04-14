@@ -54,6 +54,14 @@ module.exports = function (app) {
     if (app && typeof app.set === 'function') {
         app.set('trust proxy', 1)
         app.set('env', process.env.NODE_ENV || 'development')
+
+        // Defense in depth: ensure every response from this app gets the
+        // MIME-sniffing protection, including responses generated outside
+        // the /app router or by code paths that do not explicitly set it.
+        app.use(function (req, res, next) {
+            res.setHeader('X-Content-Type-Options', 'nosniff')
+            next()
+        })
     }
 
     app.use('/app', function (req, res, next) {
