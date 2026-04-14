@@ -31,25 +31,27 @@ function corsMiddleware(req, res, next) {
     next()
 }
 
+function securityHeadersMiddleware(req, res, next) {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
+
+    next()
+}
+
 module.exports = function (app) {
     if (app && typeof app.set === 'function') {
         app.set('trust proxy', 1)
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
+    // Apply clickjacking protection to all /app responses before any route handler.
     app.use('/app', corsMiddleware)
-
-    app.use('/app', function (req, res, next) {
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
-        res.setHeader('X-Content-Type-Options', 'nosniff')
-
-        if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-            res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-        }
-
-        next()
-    })
+    app.use('/app', securityHeadersMiddleware)
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
