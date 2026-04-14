@@ -20,6 +20,12 @@ function applyClickjackingProtection(res) {
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
+function applyPingSecurityHeaders(res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+}
+
 function renderModifyProductError(req, res, product) {
 	applyClickjackingProtection(res)
 	req.flash('danger', 'Unable to save product')
@@ -85,7 +91,7 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	res.setHeader('X-Content-Type-Options', 'nosniff')
+	applyPingSecurityHeaders(res)
 
 	var address = req.body.address
 	if (!isValidPingTarget(address)) {
