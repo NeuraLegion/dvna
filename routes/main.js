@@ -13,6 +13,7 @@ function clearSessionCookie(req, res) {
 
 function setFrameOptions(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 }
 
 module.exports = function (passport) {
