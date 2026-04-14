@@ -49,20 +49,18 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    // Enforce clickjacking protection on all /app routes.
+    // Apply clickjacking protection to every /app response path, including
+    // auth failures, redirects, renders, and handler-level early returns.
     if (!res.getHeader('X-Frame-Options')) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
 
-    // Set a single consistent CSP for every /app response path.
-    // This must happen here rather than in individual handlers so responses
-    // rendered by auth failures, redirects, or alternate code paths still carry CSP.
-    if (!res.getHeader('Content-Security-Policy')) {
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
-    }
-
     if (!res.getHeader('X-Content-Type-Options')) {
         res.setHeader('X-Content-Type-Options', 'nosniff')
+    }
+
+    if (!res.getHeader('Content-Security-Policy')) {
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
     }
 
     next()
@@ -79,7 +77,8 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Attach protection before any route handler can render a response.
+    // Mount security middleware before any route definitions so every response
+    // under this router inherits X-Frame-Options.
     router.use(corsAndSecurityMiddleware)
 
     router.options('/calc', authHandler.isAuthenticated, function (req, res) {

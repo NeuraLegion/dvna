@@ -266,6 +266,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
 				res.setHeader('X-Content-Type-Options', 'nosniff')
+				res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
@@ -274,6 +275,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 	}).catch(err => {
 		logDbError('modifyProductSubmit lookup failed', err)
 		req.flash('danger', 'Unable to save product')
+		applyClickjackingProtection(res)
 		res.render('app/modifyproduct', {
 			output: {
 				product: {
