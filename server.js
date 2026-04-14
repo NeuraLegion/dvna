@@ -5,6 +5,11 @@ var session = require('express-session')
 // Enable trust proxy support when the app is deployed behind a reverse proxy
 app.set('trust proxy', 1)
 
+app.use(function (req, res, next) {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    next()
+})
+
 app.use(session({
     secret: 'keyboard cat',
     resave: true,
