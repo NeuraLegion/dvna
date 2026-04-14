@@ -32,7 +32,7 @@ function setCorsHeaders(req, res) {
     }
 
     res.setHeader('Access-Control-Allow-Credentials', 'true')
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
 
     return true
@@ -55,6 +55,10 @@ function setSecurityHeaders(req, res, next) {
 }
 
 function corsAndSecurityMiddleware(req, res, next) {
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(405)
+    }
+
     setCorsHeaders(req, res)
     setSecurityHeaders(req, res, next)
 }
@@ -66,16 +70,6 @@ module.exports = function (app) {
     }
 
     router.use(corsAndSecurityMiddleware)
-
-    router.options('/calc', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        return res.sendStatus(204)
-    })
-
-    router.options('/modifyproduct', authHandler.isAuthenticated, function (req, res) {
-        setCorsHeaders(req, res)
-        return res.sendStatus(204)
-    })
 
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')

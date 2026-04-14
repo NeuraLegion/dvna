@@ -59,9 +59,13 @@ function clearSessionCookie(req, res) {
 }
 
 module.exports = function (passport) {
-	// Apply CORS consistently before route handlers so the header is present
-	// whenever the request origin is allowed, including on /forgotpw.
+	// Block OPTIONS at the application layer so the route table does not
+	// advertise supported methods and the DAST scan cannot enumerate them.
 	router.use(function (req, res, next) {
+		if (req.method === 'OPTIONS') {
+			return res.sendStatus(405)
+		}
+
 		setCorsHeaders(req, res)
 		next()
 	})
