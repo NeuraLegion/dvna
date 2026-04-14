@@ -3,6 +3,38 @@ var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
 module.exports = function () {
+    router.use(function (req, res, next) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+
+        var allowedOrigins = [
+            'http://localhost:9090',
+            'https://localhost:9090'
+        ]
+        var allowedMethods = 'GET,POST,OPTIONS'
+        var allowedHeaders = 'Content-Type,Authorization,X-Requested-With'
+        var origin = req.headers.origin
+        var isAllowedOrigin = origin && allowedOrigins.indexOf(origin) !== -1
+
+        if (isAllowedOrigin) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+            res.setHeader('Vary', 'Origin')
+            res.setHeader('Access-Control-Allow-Methods', allowedMethods)
+            res.setHeader('Access-Control-Allow-Headers', allowedHeaders)
+        }
+
+        if (req.method === 'OPTIONS') {
+            if (isAllowedOrigin) {
+                return res.sendStatus(204)
+            }
+            return res.sendStatus(403)
+        }
+
+        next()
+    })
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })

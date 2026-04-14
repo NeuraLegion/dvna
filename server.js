@@ -1,42 +1,34 @@
 var express = require('express')
+var path = require('path')
+var logger = require('morgan')
+var cookieParser = require('cookie-parser')
 var bodyParser = require('body-parser')
-var passport = require('passport')
 var session = require('express-session')
-var ejs = require('ejs')
-var morgan = require('morgan')
-const fileUpload = require('express-fileupload');
-var config = require('./config/server')
+var flash = require('connect-flash')
+var passport = require('passport')
 
-//Initialize Express
 var app = express()
-require('./core/passport')(passport)
-app.use(express.static('public'))
-app.set('view engine','ejs')
-app.use(morgan('tiny'))
+
+app.set('trust proxy', 1)
+
+app.use(logger('dev'))
+app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
-app.use(fileUpload());
-
-// Enable for Reverse proxy support
-// app.set('trust proxy', 1) 
-
-// Intialize Session
+app.use(cookieParser())
 app.use(session({
-  secret: 'keyboard cat',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: false }
+	secret: process.env.SESSION_SECRET || 'change-me-in-production',
+	resave: false,
+	saveUninitialized: false,
+	cookie: {
+		secure: true,
+		httpOnly: true,
+		sameSite: 'lax'
+	}
 }))
-
-// Initialize Passport
+app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
 
-// Initialize express-flash
-app.use(require('express-flash')());
+app.use(express.static(path.join(__dirname, 'public')))
 
-// Routing
-app.use('/app',require('./routes/app')())
-app.use('/',require('./routes/main')(passport))
-
-// Start Server
-app.listen(config.port, config.listen)
+module.exports = app

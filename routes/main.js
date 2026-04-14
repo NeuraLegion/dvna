@@ -3,6 +3,14 @@ var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 
 module.exports = function (passport) {
+	router.use(function (req, res, next) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'")
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+		next()
+	})
+
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
 	})
