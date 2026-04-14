@@ -40,9 +40,9 @@ function setCorsHeaders(req, res) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    // Set the frame protections on the response object as early as possible so
-    // every /app route, including /app/usersearch, gets the header before any
-    // handler or redirect can complete the response.
+    // Apply response security headers early for every /app request path so they
+    // are present on rendered pages, redirects, and POST responses such as
+    // /app/usersearch.
     if (!res.getHeader('X-Frame-Options')) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
@@ -73,8 +73,8 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Apply to every /app route so all response paths, including auth failures
-    // and handler-rendered responses, can include the security headers.
+    // Ensure the header is set for all /app routes before any handler can end
+    // the response.
     router.use(corsAndSecurityMiddleware)
 
     router.options('*', function (req, res) {
@@ -129,6 +129,8 @@ module.exports = function (app) {
 
     router.get('/redirect', appHandler.redirect)
 
+    // POST /app/usersearch is the DAST-identified path; the middleware above
+    // guarantees the CSP header is emitted even for handler-rendered responses.
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
     router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
