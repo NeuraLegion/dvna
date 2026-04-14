@@ -74,6 +74,7 @@ module.exports.productSearch = function (req, res) {
 }
 
 module.exports.modifyProduct = function (req, res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	if (!req.query.id || req.query.id == '') {
 		output = {
 			product: {}
