@@ -1,23 +1,22 @@
 var express = require('express')
+var path = require('path')
 var app = express()
-var passport = require('passport')
-var session = require('express-session')
-var flash = require('connect-flash')
+var config = require('./config/server')
 
 // Security headers
 app.use(function (req, res, next) {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     next()
 })
 
-app.use(session({
-    secret: 'dvna-secret',
-    resave: false,
-    saveUninitialized: false
-}))
-
-app.use(passport.initialize())
-app.use(passport.session())
-app.use(flash())
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
 
 module.exports = app
+
+if (require.main === module) {
+    app.listen(config.port, config.listen, function () {
+        console.log('Server listening on ' + config.listen + ':' + config.port)
+    })
+}
