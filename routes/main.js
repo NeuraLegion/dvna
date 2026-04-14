@@ -39,6 +39,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
+		setCorsHeaders(req, res)
 		res.render('vulnerabilities/layout', {
 			vuln: req.params.vuln,
 			vuln_title: vulnDict[req.params.vuln],
@@ -57,6 +58,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
+		setCorsHeaders(req, res)
 		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
