@@ -63,11 +63,8 @@ module.exports = function (passport) {
 				var clearCookieOptions = {
 					path: '/',
 					httpOnly: true,
-					sameSite: 'lax'
-				}
-
-				if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-					clearCookieOptions.secure = true
+					sameSite: 'lax',
+					secure: process.env.NODE_ENV === 'production'
 				}
 
 				res.clearCookie('connect.sid', clearCookieOptions)
