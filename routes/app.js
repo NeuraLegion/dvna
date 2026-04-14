@@ -13,10 +13,22 @@ module.exports = function () {
             'http://localhost:9090',
             'https://localhost:9090'
         ]
+        var allowedMethods = 'GET,POST,OPTIONS'
+        var allowedHeaders = 'Content-Type,Authorization,X-Requested-With'
         var origin = req.headers.origin
+
         if (origin && allowedOrigins.indexOf(origin) !== -1) {
             res.setHeader('Access-Control-Allow-Origin', origin)
             res.setHeader('Vary', 'Origin')
+            res.setHeader('Access-Control-Allow-Methods', allowedMethods)
+            res.setHeader('Access-Control-Allow-Headers', allowedHeaders)
+        }
+
+        if (req.method === 'OPTIONS') {
+            if (origin && allowedOrigins.indexOf(origin) !== -1) {
+                return res.sendStatus(204)
+            }
+            return res.sendStatus(403)
         }
 
         next()
