@@ -6,7 +6,7 @@ function clearSessionCookie(req, res) {
 	res.clearCookie('connect.sid', {
 		path: '/',
 		httpOnly: true,
-		secure: true,
+		secure: process.env.NODE_ENV === 'production' ? true : 'auto',
 		sameSite: 'lax'
 	})
 }
