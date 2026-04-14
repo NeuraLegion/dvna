@@ -57,13 +57,19 @@ function applyClickjackingProtection(res) {
 
 function applyResponseSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
 function applyPingSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+}
+
+function applyAppPageSecurityHeaders(res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
@@ -260,6 +266,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 }
 
 module.exports.userEdit = function (req, res) {
+	applyAppPageSecurityHeaders(res)
 	res.render('app/useredit', {
 		userId: req.user.id,
 		userEmail: req.user.email,
@@ -318,6 +325,7 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
+	applyAppPageSecurityHeaders(res)
 	// The route middleware already sets X-Content-Type-Options globally for /app,
 	// but keep it here as a defensive guarantee for direct invocation paths.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
