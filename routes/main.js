@@ -22,9 +22,16 @@ function setFrameOptionsHeader (req, res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 }
 
+function setHstsHeader (req, res) {
+	if (req.secure) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
+}
+
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
 		setFrameOptionsHeader(req, res)
+		setHstsHeader(req, res)
 		next()
 	})
 
