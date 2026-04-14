@@ -1,9 +1,26 @@
+var express = require('express')
+var app = express()
+var config = require('./config/server')
+
+// Ensure any cookies set by session/auth middleware are protected when the
+// app is served over HTTPS. This is intentionally global so downstream
+// middleware that relies on res.cookie/session inherits the secure default.
 app.use(function (req, res, next) {
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'")
-    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    }
-    next()
+	var isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https'
+
+	if (isHttps) {
+		res.cookie = (function (origCookie) {
+			return function (name, value, options) {
+				options = options || {}
+				if (options.secure === undefined) {
+					options.secure = true
+				}
+				return origCookie.call(this, name, value, options)
+			}
+		})(res.cookie)
+	}
+
+	next()
 })
+
+module.exports = app
