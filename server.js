@@ -1,25 +1,21 @@
 var express = require('express')
-var app = express()
-var bodyParser = require('body-parser')
 var session = require('express-session')
-var passport = require('passport')
-var routes = require('./routes')
 
-app.set('trust proxy', 1)
+var app = express()
 
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
+var isProduction = process.env.NODE_ENV === 'production'
+var isSecureCookie = isProduction || process.env.SESSION_COOKIE_SECURE === 'true'
+
 app.use(session({
     secret: 'change-this-secret',
     resave: false,
     saveUninitialized: false,
+    proxy: isProduction,
     cookie: {
-        secure: true
+        secure: isSecureCookie,
+        httpOnly: true,
+        sameSite: 'lax'
     }
 }))
-app.use(passport.initialize())
-app.use(passport.session())
-
-app.use('/', routes)
 
 module.exports = app
