@@ -59,18 +59,27 @@ function applyResponseSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
+	if (res.req && (res.req.secure || res.req.headers['x-forwarded-proto'] === 'https')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
 }
 
 function applyPingSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
+	if (res.req && (res.req.secure || res.req.headers['x-forwarded-proto'] === 'https')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
 }
 
 function applyAppPageSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
+	if (res.req && (res.req.secure || res.req.headers['x-forwarded-proto'] === 'https')) {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
 }
 
 function renderModifyProductError(req, res, product) {
