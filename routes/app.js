@@ -13,7 +13,7 @@ function setCorsHeaders(req, res) {
         res.setHeader('Access-Control-Allow-Origin', requestOrigin)
         res.setHeader('Vary', 'Origin')
         res.setHeader('Access-Control-Allow-Credentials', 'true')
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST')
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
         return true
     }
@@ -88,13 +88,6 @@ module.exports = function () {
     }, appHandler.modifyProductSubmit)
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
-
-    router.options('/calc', authHandler.isAuthenticated, function (req, res) {
-        if (setCorsHeaders(req, res)) {
-            return res.sendStatus(204)
-        }
-        return res.sendStatus(204)
-    })
 
     router.post('/calc', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
