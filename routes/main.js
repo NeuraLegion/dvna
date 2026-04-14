@@ -11,16 +11,23 @@ function clearSessionCookie(req, res) {
 	})
 }
 
+function setFrameOptions(res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+}
+
 module.exports = function (passport) {
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
+		setFrameOptions(res)
 		res.redirect('/learn')
 	})
 
 	router.get('/login', authHandler.isNotAuthenticated, function (req, res) {
+		setFrameOptions(res)
 		res.render('login')
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
+		setFrameOptions(res)
 		res.render('vulnerabilities/layout', {
 			vuln: req.params.vuln,
 			vuln_title: vulnDict[req.params.vuln],
@@ -39,14 +46,17 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
+		setFrameOptions(res)
 		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
 	router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
+		setFrameOptions(res)
 		res.render('register')
 	})
 
 	router.get('/logout', function (req, res) {
+		setFrameOptions(res)
 		var logoutAndRedirect = function () {
 			clearSessionCookie(req, res)
 			res.redirect('/')
@@ -79,6 +89,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		setFrameOptions(res)
 		res.render('forgotpw')
 	})
 
