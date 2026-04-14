@@ -35,11 +35,19 @@ function setCorsHeaders(req, res) {
 	return true
 }
 
+function shouldUseSecureCookie(req) {
+	if (process.env.NODE_ENV === 'production' || process.env.HTTPS === 'true') {
+		return true
+	}
+
+	return Boolean(req && (req.secure || (req.headers && req.headers['x-forwarded-proto'] === 'https')))
+}
+
 function clearSessionCookie(req, res) {
 	res.clearCookie('connect.sid', {
 		path: '/',
 		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production' ? true : 'auto',
+		secure: shouldUseSecureCookie(req),
 		sameSite: 'lax'
 	})
 }
