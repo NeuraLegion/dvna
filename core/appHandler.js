@@ -161,6 +161,7 @@ module.exports.ping = function (req, res) {
 
 	address = address.trim()
 	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
+		applyPingSecurityHeaders(res)
 		var output = stdout + stderr
 		res.render('app/ping', {
 			output: output
