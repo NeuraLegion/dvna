@@ -66,6 +66,26 @@ module.exports = function (app) {
     if (app && typeof app.set === 'function') {
         app.set('trust proxy', 1)
         app.set('env', process.env.NODE_ENV || 'development')
+
+        // Enforce security headers for all responses, including routes that may
+        // bypass router-level middleware or render directly from handlers.
+        app.use(function (req, res, next) {
+            if (!res.getHeader('X-Content-Type-Options')) {
+                res.setHeader('X-Content-Type-Options', 'nosniff')
+            }
+
+            res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+
+            if (!res.getHeader('Content-Security-Policy')) {
+                res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
+            }
+
+            if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+                res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+            }
+
+            next()
+        })
     }
 
     router.use(corsAndSecurityMiddleware)
@@ -101,6 +121,10 @@ module.exports = function (app) {
     router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
         if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
             res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+        }
+
+        if (!res.getHeader('Content-Security-Policy')) {
+            res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
         }
 
         next()

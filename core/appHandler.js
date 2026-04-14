@@ -79,6 +79,11 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
+	// Ensure CSP is present on the exact render path for /app/products.
+	if (!res.getHeader('Content-Security-Policy')) {
+		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
+	}
+
 	// Set anti-clickjacking header here as well so the vulnerable page keeps the
 	// protection even if router-level middleware is bypassed.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
