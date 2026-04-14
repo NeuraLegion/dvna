@@ -99,6 +99,9 @@ module.exports = function (app) {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
+        if (!res.getHeader('X-Content-Type-Options')) {
+            res.setHeader('X-Content-Type-Options', 'nosniff')
+        }
         res.render('app/calc', {output: null})
     })
 

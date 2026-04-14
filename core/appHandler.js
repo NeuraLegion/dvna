@@ -326,10 +326,11 @@ module.exports.redirect = function (req, res) {
 
 module.exports.calc = function (req, res) {
 	applyAppPageSecurityHeaders(res)
-	// The route middleware already sets X-Content-Type-Options globally for /app,
-	// but keep it here as a defensive guarantee for direct invocation paths.
+	if (!res.getHeader('X-Content-Type-Options')) {
+		res.setHeader('X-Content-Type-Options', 'nosniff')
+	}
+	// Keep explicit header-setting here so even direct handler invocation sends nosniff.
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('X-Content-Type-Options', 'nosniff')
 
 	if (req.body.eqn) {
 		res.render('app/calc', {

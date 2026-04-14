@@ -1,59 +1,61 @@
 var express = require('express')
 var path = require('path')
-var cookieParser = require('cookie-parser')
+var favicon = require('serve-favicon')
 var logger = require('morgan')
+var cookieParser = require('cookie-parser')
+var bodyParser = require('body-parser')
 var session = require('express-session')
 var passport = require('passport')
 var flash = require('connect-flash')
 var helmet = require('helmet')
 
-var indexRouter = require('./routes/index')
+var index = require('./routes/index')
 var appRouter = require('./routes/app')
+var learn = require('./routes/learn')
+var signup = require('./routes/signup')
+var login = require('./routes/login')
+var profile = require('./routes/profile')
 
 var app = express()
 
-app.set('trust proxy', 1)
-app.set('env', process.env.NODE_ENV || 'development')
+// view engine setup
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
 
 app.use(helmet({
-    hsts: false
+    hsts: false,
+    noSniff: true
 }))
-
-app.use(function (req, res, next) {
-    var isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https'
-
-    if (isHttps && !res.getHeader('Strict-Transport-Security')) {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    }
-
-    next()
-})
 
 app.use(function (req, res, next) {
     if (!res.getHeader('X-Frame-Options')) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
-
+    if (!res.getHeader('X-Content-Type-Options')) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+    }
     next()
 })
 
-app.use(logger('dev'))
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
-app.use(cookieParser())
-app.use(express.static(path.join(__dirname, 'public')))
+app.use(function (req, res, next) {
+    var originalRender = res.render
+    res.render = function () {
+        if (!res.getHeader('X-Content-Type-Options')) {
+            res.setHeader('X-Content-Type-Options', 'nosniff')
+        }
+        if (!res.getHeader('X-Frame-Options')) {
+            res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        }
+        return originalRender.apply(this, arguments)
+    }
+    next()
+})
 
-app.use(session({
-    secret: 'secret',
-    resave: false,
-    saveUninitialized: false
-}))
-
-app.use(passport.initialize())
-app.use(passport.session())
-app.use(flash())
-
-app.use('/', indexRouter)
+app.use('/', index)
 app.use('/app', appRouter(app))
+app.use('/learn', learn)
+app.use('/signup', signup)
+app.use('/login', login)
+app.use('/profile', profile)
 
 module.exports = app
