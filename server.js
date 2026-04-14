@@ -1,42 +1,43 @@
 var express = require('express')
+var path = require('path')
+var favicon = require('serve-favicon')
+var logger = require('morgan')
+var cookieParser = require('cookie-parser')
 var bodyParser = require('body-parser')
-var passport = require('passport')
 var session = require('express-session')
-var ejs = require('ejs')
-var morgan = require('morgan')
-const fileUpload = require('express-fileupload');
-var config = require('./config/server')
+var passport = require('passport')
+var flash = require('connect-flash')
 
-//Initialize Express
+var routes = require('./routes/index')
+var appRoutes = require('./routes/app')
+
 var app = express()
-require('./core/passport')(passport)
-app.use(express.static('public'))
-app.set('view engine','ejs')
-app.use(morgan('tiny'))
+
+if (app.get('env') === 'production') {
+    app.set('trust proxy', 1)
+}
+
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
+
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
+app.use(logger('dev'))
+app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
-app.use(fileUpload());
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
 
-// Enable for Reverse proxy support
-// app.set('trust proxy', 1) 
-
-// Intialize Session
 app.use(session({
   secret: 'keyboard cat',
   resave: true,
   saveUninitialized: true,
-  cookie: { secure: false }
+  cookie: { secure: app.get('env') === 'production' }
 }))
-
-// Initialize Passport
 app.use(passport.initialize())
 app.use(passport.session())
+app.use(flash())
 
-// Initialize express-flash
-app.use(require('express-flash')());
+app.use('/', routes())
+app.use('/app', appRoutes())
 
-// Routing
-app.use('/app',require('./routes/app')())
-app.use('/',require('./routes/main')(passport))
-
-// Start Server
-app.listen(config.port, config.listen)
+module.exports = app
