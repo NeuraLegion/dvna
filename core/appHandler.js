@@ -1,10 +1,28 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-const exec = require('child_process').exec;
+const execFile = require('child_process').execFile;
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
+
+function isValidPingTarget(address) {
+	if (typeof address !== 'string') {
+		return false
+	}
+
+	address = address.trim()
+	if (!address) {
+		return false
+	}
+
+	// Allow IPv4, IPv6, and hostnames; avoid shell metacharacters entirely.
+	var ipv4 = /^(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
+	var ipv6 = /^\[[0-9a-fA-F:]+\]$|^[0-9a-fA-F:]+$/
+	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/
+
+	return ipv4.test(address) || ipv6.test(address) || hostname.test(address)
+}
 
 module.exports.userSearch = function (req, res) {
 	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
@@ -37,8 +55,19 @@ module.exports.userSearch = function (req, res) {
 
 module.exports.ping = function (req, res) {
 	res.setHeader('X-Content-Type-Options', 'nosniff')
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
-		output = stdout + stderr
+
+	var address = req.body.address
+	if (!isValidPingTarget(address)) {
+		req.flash('warning', 'Invalid address')
+		res.render('app/ping', {
+			output: 'Invalid address'
+		})
+		return
+	}
+
+	address = address.trim()
+	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
+		var output = stdout + stderr
 		res.render('app/ping', {
 			output: output
 		})

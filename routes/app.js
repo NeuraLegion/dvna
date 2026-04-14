@@ -80,7 +80,10 @@ module.exports = function (app) {
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
+    router.post('/ping', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    }, appHandler.ping)
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
