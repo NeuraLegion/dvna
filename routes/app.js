@@ -67,7 +67,28 @@ function setSecurityHeaders(req, res, next) {
 module.exports = function (app) {
     if (app && typeof app.set === 'function') {
         app.set('trust proxy', 1)
+
+        // Prevent verbose error pages from leaking database/framework details in production.
+        app.set('env', process.env.NODE_ENV || 'development')
     }
+
+    // Generic production-safe error handler for any route that forwards errors to Express.
+    app.use(function (err, req, res, next) {
+        if (err) {
+            console.error('Request failed:', err && err.message ? err.message : err)
+        }
+
+        if (res.headersSent) {
+            return next(err)
+        }
+
+        req.flash('danger', 'An unexpected error occurred')
+        res.status(500).render('app/modifyproduct', {
+            output: {
+                product: {}
+            }
+        })
+    })
 
     // Apply security headers before any route handlers so all responses inherit them.
     router.use(function (req, res, next) {

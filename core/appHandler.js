@@ -6,6 +6,28 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function logDbError(context, err) {
+	var message = err && err.message ? err.message : 'unknown error'
+	console.error(context + ': ' + message)
+	if (err && err.name) {
+		console.error(context + ': ' + err.name)
+	}
+}
+
+function renderModifyProductError(req, res, product) {
+	req.flash('danger', 'Unable to save product')
+	res.render('app/modifyproduct', {
+		output: {
+			product: product
+		}
+	})
+}
+
+function handleModifyProductError(req, res, product, err) {
+	logDbError('modifyProductSubmit failed', err)
+	renderModifyProductError(req, res, product)
+}
+
 function isValidPingTarget(address) {
 	if (typeof address !== 'string') {
 		return false
@@ -19,7 +41,7 @@ function isValidPingTarget(address) {
 	// Allow IPv4, IPv6, and hostnames; avoid shell metacharacters entirely.
 	var ipv4 = /^(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
 	var ipv6 = /^\[[0-9a-fA-F:]+\]$|^[0-9a-fA-F:]+$/
-	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$ /
+	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/
 
 	return ipv4.test(address) || ipv6.test(address) || hostname.test(address)
 }
@@ -130,6 +152,14 @@ module.exports.modifyProduct = function (req, res) {
 			res.render('app/modifyproduct', {
 				output: output
 			})
+		}).catch(err => {
+			logDbError('modifyProduct failed', err)
+			req.flash('danger', 'Unable to load product')
+			res.render('app/modifyproduct', {
+				output: {
+					product: {}
+				}
+			})
 		})
 	}
 }
@@ -156,14 +186,16 @@ module.exports.modifyProductSubmit = function (req, res) {
 				res.redirect('/app/products')
 			}
 		}).catch(err => {
-			console.error('modifyProductSubmit failed:', err)
-			output = {
-				product: product
-			}
-			req.flash('danger', 'Unable to save product')
-			res.render('app/modifyproduct', {
-				output: output
-			})
+			handleModifyProductError(req, res, product, err)
+		})
+	}).catch(err => {
+		logDbError('modifyProductSubmit lookup failed', err)
+		renderModifyProductError(req, res, {
+			id: req.body.id,
+			code: req.body.code,
+			name: req.body.name,
+			description: req.body.description,
+			tags: req.body.tags
 		})
 	})
 }
