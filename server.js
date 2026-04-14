@@ -15,5 +15,3 @@ app.use(session({
 		sameSite: 'lax'
 	}
 }))
-
-module.exports = app
