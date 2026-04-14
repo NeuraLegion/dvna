@@ -57,7 +57,7 @@ function applyClickjackingProtection(res) {
 
 function applyResponseSecurityHeaders(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
 	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
@@ -130,6 +130,7 @@ module.exports.userSearch = function (req, res) {
 			})
 		}
 	}).catch(err => {
+		logDbError('userSearch failed', err)
 		req.flash('danger', 'Internal Error')
 		res.render('app/usersearch', {
 			output: null
@@ -170,6 +171,14 @@ module.exports.listProducts = function (req, res) {
 		res.render('app/products', {
 			output: output
 		})
+	}).catch(err => {
+		logDbError('listProducts failed', err)
+		req.flash('danger', 'Unable to load products')
+		res.render('app/products', {
+			output: {
+				products: []
+			}
+		})
 	})
 }
 
@@ -187,6 +196,15 @@ module.exports.productSearch = function (req, res) {
 		}
 		res.render('app/products', {
 			output: output
+		})
+	}).catch(err => {
+		logDbError('productSearch failed', err)
+		req.flash('danger', 'Unable to search products')
+		res.render('app/products', {
+			output: {
+				products: [],
+				searchTerm: req.body.name
+			}
 		})
 	})
 }
@@ -255,12 +273,17 @@ module.exports.modifyProductSubmit = function (req, res) {
 		})
 	}).catch(err => {
 		logDbError('modifyProductSubmit lookup failed', err)
-		renderModifyProductError(req, res, {
-			id: req.body.id,
-			code: req.body.code,
-			name: req.body.name,
-			description: req.body.description,
-			tags: req.body.tags
+		req.flash('danger', 'Unable to save product')
+		res.render('app/modifyproduct', {
+			output: {
+				product: {
+					id: req.body.id,
+					code: req.body.code,
+					name: req.body.name,
+					description: req.body.description,
+					tags: req.body.tags
+				}
+			}
 		})
 	})
 }
