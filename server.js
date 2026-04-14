@@ -4,7 +4,7 @@ var appConfig = require('./config/server')
 
 var app = express()
 
-if (appConfig.session.proxy) {
+if (app && typeof app.set === 'function') {
     app.set('trust proxy', 1)
 }
 
