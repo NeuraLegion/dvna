@@ -2,7 +2,22 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
+function setCorsHeaders(req, res, next) {
+    var origin = req.headers.origin
+    var expected = req.protocol + '://' + req.get('host')
+
+    if (origin && origin === expected) {
+        res.set('Access-Control-Allow-Origin', origin)
+        res.set('Vary', 'Origin')
+        res.set('Access-Control-Allow-Credentials', 'true')
+    }
+
+    next()
+}
+
 module.exports = function () {
+    router.use(setCorsHeaders)
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
