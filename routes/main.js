@@ -2,79 +2,16 @@ var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
 
-var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
-	return origin.trim()
-}).filter(Boolean)
-
-var contentSecurityPolicy = "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
-
-function setCorsHeaders(req, res) {
-	var requestOrigin = req.headers.origin
-
-	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
-		if (!res.getHeader('Access-Control-Allow-Origin')) {
-			res.setHeader('Access-Control-Allow-Origin', requestOrigin)
-		}
-
-		if (!res.getHeader('Vary')) {
-			res.setHeader('Vary', 'Origin')
-		} else if (String(res.getHeader('Vary')).indexOf('Origin') === -1) {
-			res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
-		}
-
-		return true
-	}
-
-	return false
-}
-
-function setSecurityHeaders(req, res) {
-	if (!res.getHeader('X-Frame-Options')) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	}
-
-	if (!res.getHeader('Content-Security-Policy')) {
-		res.setHeader('Content-Security-Policy', contentSecurityPolicy)
-	}
-
-	// Ensure the MIME-sniffing protection header is always present on HTML responses.
-	if (!res.getHeader('X-Content-Type-Options')) {
-		res.setHeader('X-Content-Type-Options', 'nosniff')
-	}
-
-	if (!res.getHeader('Strict-Transport-Security') && (req.secure || req.headers['x-forwarded-proto'] === 'https')) {
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	}
-}
-
 function clearSessionCookie(req, res) {
-	var isSecureRequest = req.secure || req.headers['x-forwarded-proto'] === 'https'
-
 	res.clearCookie('connect.sid', {
 		path: '/',
 		httpOnly: true,
-		secure: isSecureRequest,
+		secure: true,
 		sameSite: 'lax'
 	})
 }
 
 module.exports = function (passport) {
-	// Block OPTIONS at the application layer so the route table does not
-	// advertise supported methods and the DAST scan cannot enumerate them.
-	router.use(function (req, res, next) {
-		if (req.method === 'OPTIONS') {
-			return res.sendStatus(405)
-		}
-
-		setCorsHeaders(req, res)
-		next()
-	})
-
-	router.use(function (req, res, next) {
-		setSecurityHeaders(req, res)
-		next()
-	})
-
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
 	})
@@ -110,21 +47,35 @@ module.exports = function (passport) {
 	})
 
 	router.get('/logout', function (req, res) {
-		req.logout(function (err) {
-			if (err) {
-				return res.redirect('/')
-			}
+		var logoutAndRedirect = function () {
+			clearSessionCookie(req, res)
+			res.redirect('/')
+		}
 
-			if (req.session) {
-				req.session.destroy(function () {
-					clearSessionCookie(req, res)
-					res.redirect('/')
-				})
-			} else {
-				clearSessionCookie(req, res)
-				res.redirect('/')
-			}
-		})
+		if (typeof req.logout === 'function' && req.logout.length > 0) {
+			req.logout(function (err) {
+				if (err) {
+					return res.redirect('/')
+				}
+
+				if (req.session && typeof req.session.destroy === 'function') {
+					req.session.destroy(logoutAndRedirect)
+				} else {
+					logoutAndRedirect()
+				}
+			})
+			return
+		}
+
+		if (typeof req.logout === 'function') {
+			req.logout()
+		}
+
+		if (req.session && typeof req.session.destroy === 'function') {
+			req.session.destroy(logoutAndRedirect)
+		} else {
+			logoutAndRedirect()
+		}
 	})
 
 	router.get('/forgotpw', function (req, res) {
