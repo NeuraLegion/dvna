@@ -28,10 +28,15 @@ function setHstsHeader (req, res) {
 	}
 }
 
+function setCspHeader (req, res) {
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+}
+
 module.exports = function (passport) {
 	router.use(function (req, res, next) {
 		setFrameOptionsHeader(req, res)
 		setHstsHeader(req, res)
+		setCspHeader(req, res)
 		next()
 	})
 
