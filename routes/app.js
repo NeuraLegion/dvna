@@ -35,7 +35,18 @@ function isHttpsRequest(req) {
 }
 
 function setSecurityHeaders(req, res, next) {
-    var csp = "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+    // Keep CSP strict enough to mitigate XSS while allowing the app's existing
+    // Bootstrap/CDN dependencies and inline styles used by legacy templates.
+    var csp = [
+        "default-src 'self'",
+        "script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com",
+        "style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com",
+        "img-src 'self' data:",
+        "font-src 'self' data: https://maxcdn.bootstrapcdn.com",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "frame-ancestors 'self'"
+    ].join('; ')
 
     // Set headers on every /app response path, including rendered pages like /app/calc.
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
