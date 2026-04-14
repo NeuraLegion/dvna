@@ -6,6 +6,22 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function isValidOriginRequest (req) {
+	var origin = req.headers.origin
+	var referer = req.headers.referer
+	var expectedOrigin = req.protocol + '://' + req.get('host')
+
+	if (origin) {
+		return origin === expectedOrigin
+	}
+
+	if (referer) {
+		return referer.indexOf(expectedOrigin + '/') === 0 || referer === expectedOrigin
+	}
+
+	return false
+}
+
 module.exports.userSearch = function (req, res) {
 	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
@@ -77,7 +93,8 @@ module.exports.modifyProduct = function (req, res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	if (!req.query.id || req.query.id == '') {
 		output = {
-			product: {}
+			product: {},
+			csrfToken: req.csrfToken ? req.csrfToken() : null
 		}
 		res.render('app/modifyproduct', {
 			output: output
@@ -92,7 +109,8 @@ module.exports.modifyProduct = function (req, res) {
 				product = {}
 			}
 			output = {
-				product: product
+				product: product,
+				csrfToken: req.csrfToken ? req.csrfToken() : null
 			}
 			res.render('app/modifyproduct', {
 				output: output
@@ -102,6 +120,21 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
+	if (!isValidOriginRequest(req)) {
+		req.flash('danger', 'Invalid request origin')
+		return res.status(403).render('app/modifyproduct', {
+			output: {
+				product: {
+					id: req.body.id || '',
+					name: req.body.name || '',
+					code: req.body.code || '',
+					tags: req.body.tags || '',
+					description: req.body.description || ''
+				},
+				csrfToken: req.csrfToken ? req.csrfToken() : null
+			}
+		})
+	}
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
@@ -125,7 +158,8 @@ module.exports.modifyProductSubmit = function (req, res) {
 		}).catch(err => {
 			console.error('Error saving product:', err)
 			output = {
-				product: product
+				product: product,
+				csrfToken: req.csrfToken ? req.csrfToken() : null
 			}
 			req.flash('danger', 'An error occurred while saving the product.')
 			res.render('app/modifyproduct', {
