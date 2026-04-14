@@ -8,8 +8,8 @@ module.exports = function isHttpsRequest(req) {
     }
 
     var forwardedProto = req.headers && req.headers['x-forwarded-proto']
-    if (typeof forwardedProto === 'string' && forwardedProto.split(',')[0].trim().toLowerCase() === 'https') {
-        return true
+    if (typeof forwardedProto === 'string') {
+        return forwardedProto.split(',')[0].trim().toLowerCase() === 'https'
     }
 
     return false

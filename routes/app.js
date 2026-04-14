@@ -21,22 +21,10 @@ function setCorsHeaders(req, res) {
     return false
 }
 
-function isHttpsRequest(req) {
-    if (req.secure) {
-        return true
-    }
-
-    return req.headers['x-forwarded-proto'] === 'https'
-}
-
 function securityHeadersMiddleware(req, res, next) {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
     res.setHeader('X-Content-Type-Options', 'nosniff')
-
-    if (isHttpsRequest(req) || process.env.NODE_ENV === 'production') {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    }
 
     next()
 }
@@ -57,8 +45,6 @@ module.exports = function (app) {
         app.set('env', process.env.NODE_ENV || 'development')
     }
 
-    // Apply headers at the subtree level so every /app response gets the same policy.
-    // This avoids relying on individual handlers to remember to set CORS headers.
     app.use('/app', securityHeadersMiddleware)
     app.use('/app', corsMiddleware)
 
@@ -111,8 +97,6 @@ module.exports = function (app) {
 
     router.get('/redirect', appHandler.redirect)
 
-    // Keep the explicit route-level hook as a defense-in-depth measure,
-    // but the subtree middleware above is the authoritative CORS control.
     router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
         next()
