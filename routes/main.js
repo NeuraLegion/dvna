@@ -18,7 +18,7 @@ module.exports = function (passport) {
 			vuln_scenario: req.params.vuln + '/scenario',
 			vuln_description: req.params.vuln + '/description',
 			vuln_reference: req.params.vuln + '/reference',
-			vulnerabilities:vulnDict
+			vulnerabilities: vulnDict
 		}, function (err, html) {
 			if (err) {
 				console.log(err)
@@ -30,7 +30,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
-		res.render('learn',{vulnerabilities:vulnDict})
+		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
 	router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
@@ -38,8 +38,21 @@ module.exports = function (passport) {
 	})
 
 	router.get('/logout', function (req, res) {
-		req.logout();
-		res.redirect('/');
+		req.logout(function (err) {
+			if (err) {
+				return res.redirect('/')
+			}
+
+			req.session.destroy(function () {
+				res.clearCookie('connect.sid', {
+					path: '/',
+					httpOnly: true,
+					secure: true,
+					sameSite: 'lax'
+				})
+				res.redirect('/')
+			})
+		})
 	})
 
 	router.get('/forgotpw', function (req, res) {
