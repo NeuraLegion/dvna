@@ -2,6 +2,25 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
+var allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(function (origin) {
+    return origin.trim()
+}).filter(Boolean)
+
+function setCorsHeaders(req, res) {
+    var requestOrigin = req.headers.origin
+
+    if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+        res.setHeader('Vary', 'Origin')
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        return true
+    }
+
+    return false
+}
+
 module.exports = function () {
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
@@ -57,7 +76,17 @@ module.exports = function () {
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
-    router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
+    router.options('/calc', authHandler.isAuthenticated, function (req, res) {
+        if (setCorsHeaders(req, res)) {
+            return res.sendStatus(204)
+        }
+        return res.sendStatus(204)
+    })
+
+    router.post('/calc', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    }, appHandler.calc)
 
     router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts);
 
