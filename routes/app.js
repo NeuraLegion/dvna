@@ -34,7 +34,9 @@ function setSecurityHeaders(req, res, next) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
 
-    next()
+    if (typeof next === 'function') {
+        next()
+    }
 }
 
 function applySecurityHeaders(req, res, next) {
@@ -47,30 +49,47 @@ module.exports = function (app) {
     }
 
     // Apply security headers before any route handlers so all responses inherit them.
+    // Also make sure the header is set again on the finished response in case any
+    // downstream middleware or route handler short-circuits the request path.
+    router.use(function (req, res, next) {
+        setSecurityHeaders(req, res, function () {})
+        next()
+    })
+
     router.use(applySecurityHeaders)
 
+    router.use(function (req, res, next) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        next()
+    })
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.redirect('/learn')
     })
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/usersearch', {
             output: null
         })
     })
 
     router.get('/ping', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/ping', {
             output: null
         })
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/bulkproducts',{legacy:req.query.legacy})
     })
 
     router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.listProducts)
 
@@ -79,13 +98,15 @@ module.exports = function (app) {
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
     router.get('/calc', authHandler.isAuthenticated, function (req, res) {
-        // Re-assert the CSP on the rendered response to cover any downstream middleware
-        // or response handling that could otherwise omit headers.
+        // Re-assert the security headers immediately before rendering to ensure
+        // the response always carries nosniff even if another middleware altered them.
         setSecurityHeaders(req, res, function () {})
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/calc',{output:null})
     })
 
     router.get('/admin', authHandler.isAuthenticated, function (req, res) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/admin', {
             admin: (req.user.role == 'admin')
         })
@@ -94,6 +115,7 @@ module.exports = function (app) {
     router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
 
     router.get('/admin/users', authHandler.isAuthenticated, function(req, res){
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         res.render('app/adminusers')
     })
 
@@ -101,11 +123,13 @@ module.exports = function (app) {
 
     router.post('/usersearch', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.userSearch)
 
     router.post('/ping', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.ping)
 
@@ -113,6 +137,7 @@ module.exports = function (app) {
 
     router.post('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.modifyProductSubmit)
 
@@ -120,6 +145,7 @@ module.exports = function (app) {
 
     router.post('/calc', authHandler.isAuthenticated, function (req, res, next) {
         setCorsHeaders(req, res)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         next()
     }, appHandler.calc)
 
