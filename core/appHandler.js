@@ -173,7 +173,7 @@ module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
 			'id': req.user.id
-		}		
+		}
 	}).then(user =>{
 		if (!user) {
 			req.flash('danger', 'User not found')

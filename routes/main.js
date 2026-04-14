@@ -23,7 +23,7 @@ function setFrameOptionsHeader (req, res) {
 }
 
 function setHstsHeader (req, res) {
-	if (req.secure) {
+	if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
 		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 	}
 }
@@ -83,7 +83,7 @@ module.exports = function (passport) {
 
 	router.get('/logout', function (req, res) {
 		var clearSessionCookie = function () {
-			res.clearCookie('connect.sid', { httpOnly: true, secure: true })
+			res.clearCookie('connect.sid', { httpOnly: true, secure: req.secure || req.headers['x-forwarded-proto'] === 'https' })
 			res.redirect('/')
 		}
 

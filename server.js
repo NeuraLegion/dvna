@@ -16,6 +16,16 @@ app.set('trust proxy', 1)
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
 
+app.use(function (req, res, next) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+		res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	}
+	res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+	next()
+})
+
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))
 app.use(bodyParser.json())
@@ -29,7 +39,7 @@ app.use(session({
 	saveUninitialized: false,
 	cookie: {
 		httpOnly: true,
-		secure: true,
+		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax'
 	}
 }))
