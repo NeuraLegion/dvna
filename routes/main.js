@@ -38,22 +38,24 @@ module.exports = function (passport) {
 	})
 
 	router.get('/logout', function (req, res) {
+		var clearSessionCookie = function () {
+			res.clearCookie('connect.sid', { httpOnly: true, secure: true })
+			res.redirect('/')
+		}
+
 		if (req.logout) {
 			req.logout(function () {
-				req.session.destroy(function () {
-					res.clearCookie('connect.sid', { httpOnly: true, secure: req.secure || req.headers['x-forwarded-proto'] === 'https' })
-					res.redirect('/')
-				})
+				if (req.session) {
+					req.session.destroy(clearSessionCookie)
+				} else {
+					clearSessionCookie()
+				}
 			})
 		} else {
 			if (req.session) {
-				req.session.destroy(function () {
-					res.clearCookie('connect.sid', { httpOnly: true, secure: req.secure || req.headers['x-forwarded-proto'] === 'https' })
-					res.redirect('/')
-				})
+				req.session.destroy(clearSessionCookie)
 			} else {
-				res.clearCookie('connect.sid', { httpOnly: true, secure: req.secure || req.headers['x-forwarded-proto'] === 'https' })
-				res.redirect('/')
+				clearSessionCookie()
 			}
 		}
 	})
