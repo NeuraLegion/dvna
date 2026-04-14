@@ -60,12 +60,17 @@ module.exports = function (passport) {
 			}
 
 			req.session.destroy(function () {
-				res.clearCookie('connect.sid', {
+				var clearCookieOptions = {
 					path: '/',
 					httpOnly: true,
-					secure: true,
 					sameSite: 'lax'
-				})
+				}
+
+				if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+					clearCookieOptions.secure = true
+				}
+
+				res.clearCookie('connect.sid', clearCookieOptions)
 				res.redirect('/')
 			})
 		})
