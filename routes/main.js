@@ -12,8 +12,16 @@ function setCorsHeaders(req, res) {
 	var requestOrigin = req.headers.origin
 
 	if (requestOrigin && allowedOrigins.indexOf(requestOrigin) !== -1) {
-		res.setHeader('Access-Control-Allow-Origin', requestOrigin)
-		res.setHeader('Vary', 'Origin')
+		if (!res.getHeader('Access-Control-Allow-Origin')) {
+			res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+		}
+
+		if (!res.getHeader('Vary')) {
+			res.setHeader('Vary', 'Origin')
+		} else if (String(res.getHeader('Vary')).indexOf('Origin') === -1) {
+			res.setHeader('Vary', String(res.getHeader('Vary')) + ', Origin')
+		}
+
 		return true
 	}
 
@@ -51,6 +59,13 @@ function clearSessionCookie(req, res) {
 }
 
 module.exports = function (passport) {
+	// Apply CORS consistently before route handlers so the header is present
+	// whenever the request origin is allowed, including on /forgotpw.
+	router.use(function (req, res, next) {
+		setCorsHeaders(req, res)
+		next()
+	})
+
 	router.use(function (req, res, next) {
 		setSecurityHeaders(req, res)
 		next()
@@ -61,13 +76,10 @@ module.exports = function (passport) {
 	})
 
 	router.get('/login', authHandler.isNotAuthenticated, function (req, res) {
-		setSecurityHeaders(req, res)
 		res.render('login')
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
-		setCorsHeaders(req, res)
-		setSecurityHeaders(req, res)
 		res.render('vulnerabilities/layout', {
 			vuln: req.params.vuln,
 			vuln_title: vulnDict[req.params.vuln],
@@ -86,13 +98,10 @@ module.exports = function (passport) {
 	})
 
 	router.get('/learn', authHandler.isAuthenticated, function (req, res) {
-		setCorsHeaders(req, res)
-		setSecurityHeaders(req, res)
 		res.render('learn', { vulnerabilities: vulnDict })
 	})
 
 	router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
-		setSecurityHeaders(req, res)
 		res.render('register')
 	})
 
@@ -115,8 +124,6 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
-		setSecurityHeaders(req, res)
-		setCorsHeaders(req, res)
 		res.render('forgotpw')
 	})
 
