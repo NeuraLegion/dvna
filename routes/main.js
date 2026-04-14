@@ -18,7 +18,16 @@ function setCorsHeader (req, res) {
 	}
 }
 
+function setFrameOptionsHeader (req, res) {
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+}
+
 module.exports = function (passport) {
+	router.use(function (req, res, next) {
+		setFrameOptionsHeader(req, res)
+		next()
+	})
+
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
 	})
