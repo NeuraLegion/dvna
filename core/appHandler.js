@@ -17,6 +17,7 @@ function logDbError(context, err) {
 function applyClickjackingProtection(res) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 	res.setHeader('Content-Security-Policy', "frame-ancestors 'self'")
+	res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
 function renderModifyProductError(req, res, product) {
@@ -191,6 +192,7 @@ module.exports.modifyProductSubmit = function (req, res) {
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
+				res.setHeader('X-Content-Type-Options', 'nosniff')
 				res.redirect('/app/products')
 			}
 		}).catch(err => {

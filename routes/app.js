@@ -83,6 +83,7 @@ module.exports = function (app) {
             return next(err)
         }
 
+        res.setHeader('X-Content-Type-Options', 'nosniff')
         req.flash('danger', 'An unexpected error occurred')
         res.status(500).render('app/modifyproduct', {
             output: {
