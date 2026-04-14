@@ -110,7 +110,7 @@ function isValidPingTarget(address) {
 	// Allow IPv4, IPv6, and hostnames; avoid shell metacharacters entirely.
 	var ipv4 = /^(?:25[0-5]|2-4\d|1?\d?\d)(?:\.(?:25[0-5]|2[4]\d|1?\d?\d)){3}$/
 	var ipv6 = /^\[[0-9a-fA-F:]+\]$|^[0-9a-fA-F:]+$/
-	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/
+	var hostname = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)*(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/'
 
 	return ipv4.test(address) || ipv6.test(address) || hostname.test(address)
 }
@@ -149,6 +149,7 @@ module.exports.userSearch = function (req, res) {
 
 module.exports.ping = function (req, res) {
 	applyPingSecurityHeaders(res)
+	res.setHeader('X-Content-Type-Options', 'nosniff')
 
 	var address = req.body.address
 	if (!isValidPingTarget(address)) {
@@ -162,6 +163,7 @@ module.exports.ping = function (req, res) {
 	address = address.trim()
 	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
 		applyPingSecurityHeaders(res)
+		res.setHeader('X-Content-Type-Options', 'nosniff')
 		var output = stdout + stderr
 		res.render('app/ping', {
 			output: output
