@@ -46,9 +46,10 @@ function setSecurityHeaders(req, res, next) {
 		res.setHeader('X-Content-Type-Options', 'nosniff')
 	}
 
-	if (!res.getHeader('X-Frame-Options')) {
-		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
-	}
+	// Always emit an anti-clickjacking header for browser-rendered responses.
+	// Using SAMEORIGIN preserves current functionality while preventing framing
+	// by third-party sites.
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
 
 	if (!res.getHeader('Content-Security-Policy')) {
 		res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
@@ -103,7 +104,13 @@ module.exports = function (app) {
 		res.render('app/bulkproducts', {legacy: req.query.legacy})
 	})
 
-	router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
+	// Defense-in-depth: set the framing header directly on the vulnerable
+	// products view path so the response keeps the header even if middleware is
+	// bypassed by a different mount order or future refactor.
+	router.get('/products', authHandler.isAuthenticated, function (req, res, next) {
+		res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+		next()
+	}, appHandler.listProducts)
 
 	router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
 

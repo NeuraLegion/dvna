@@ -79,6 +79,10 @@ module.exports.ping = function (req, res) {
 }
 
 module.exports.listProducts = function (req, res) {
+	// Set anti-clickjacking header here as well so the vulnerable page keeps the
+	// protection even if router-level middleware is bypassed.
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+
 	db.Product.findAll().then(products => {
 		output = {
 			products: products
