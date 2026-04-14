@@ -154,6 +154,9 @@ module.exports = function (app) {
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
     router.post('/calc', authHandler.isAuthenticated, function (req, res, next) {
+        // Explicitly set the clickjacking protection on the vulnerable POST path.
+        // This is defensive even though the router-level middleware should already apply it.
+        setSecurityHeaders(req, res, function () {})
         setCorsHeaders(req, res)
         res.setHeader('X-Content-Type-Options', 'nosniff')
         next()

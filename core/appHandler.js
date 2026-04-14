@@ -227,6 +227,11 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
+	// Defensive header set here as well, so the rendered response is protected
+	// even if upstream middleware is bypassed or the route is mounted elsewhere.
+	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+	res.setHeader('X-Content-Type-Options', 'nosniff')
+
 	if (req.body.eqn) {
 		res.render('app/calc', {
 			output: mathjs.eval(req.body.eqn)
