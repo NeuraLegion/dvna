@@ -68,6 +68,12 @@ module.exports = function (passport) {
 	})
 
 	router.get('/forgotpw', function (req, res) {
+		var origin = req.headers.origin
+		if (origin && isTrustedOrigin(origin)) {
+			res.setHeader('Access-Control-Allow-Origin', origin)
+			res.setHeader('Access-Control-Allow-Credentials', 'true')
+		}
+		res.setHeader('Vary', 'Origin')
 		res.render('forgotpw')
 	})
 
