@@ -1,17 +1,45 @@
 var express = require('express')
-var app = express()
 var path = require('path')
+var favicon = require('serve-favicon')
+var logger = require('morgan')
+var cookieParser = require('cookie-parser')
 var bodyParser = require('body-parser')
 var flash = require('connect-flash')
 var session = require('express-session')
-var cookieParser = require('cookie-parser')
 var passport = require('passport')
+
 var config = require('./config/server')
+var routes = require('./routes')
 
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
-app.set('env', process.env.NODE_ENV || 'development')
+var app = express()
 
+app.set('trust proxy', 1)
+
+function isHttpsRequest(req) {
+    if (req.secure) {
+        return true
+    }
+
+    var forwardedProto = req.headers['x-forwarded-proto']
+    if (typeof forwardedProto === 'string' && forwardedProto.split(',')[0].trim().toLowerCase() === 'https') {
+        return true
+    }
+
+    return false
+}
+
+// Redirect plain HTTP requests before session middleware runs so the session
+// cookie is never delivered over an insecure channel.
+app.use(function (req, res, next) {
+    if (process.env.NODE_ENV === 'production' && !isHttpsRequest(req)) {
+        return res.redirect(301, 'https://' + req.headers.host + req.originalUrl)
+    }
+
+    next()
+})
+
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
+app.use(logger('dev'))
 app.use(cookieParser())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -20,21 +48,6 @@ app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
 
-app.use(function (err, req, res, next) {
-    if (err) {
-        console.error('Unhandled application error:', err && err.message ? err.message : err)
-    }
-
-    if (res.headersSent) {
-        return next(err)
-    }
-
-    req.flash('danger', 'An unexpected error occurred')
-    res.status(500).render('app/modifyproduct', {
-        output: {
-            product: {}
-        }
-    })
-})
+app.use('/', routes)
 
 module.exports = app
