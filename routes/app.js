@@ -28,7 +28,10 @@ function setSecurityHeaders(req, res, next) {
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
     res.setHeader('X-Content-Type-Options', 'nosniff')
 
-    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    // HSTS should be emitted for all /app responses so browsers learn to use HTTPS
+    // even if the app is deployed behind a TLS-terminating proxy or the request
+    // is not marked secure by the current Node process.
+    if (!res.getHeader('Strict-Transport-Security')) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
 
