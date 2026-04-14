@@ -1,38 +1,19 @@
 var express = require('express')
-var path = require('path')
-var favicon = require('serve-favicon')
-var logger = require('morgan')
-var cookieParser = require('cookie-parser')
-var bodyParser = require('body-parser')
-var session = require('express-session')
-var passport = require('passport')
-var flash = require('connect-flash')
-var nunjucks = require('nunjucks')
 var helmet = require('helmet')
-var serverConfig = require('./config/server')
+var path = require('path')
 
 var app = express()
 
-app.set('trust proxy', serverConfig.session.proxy ? 1 : 0)
-app.set('env', process.env.NODE_ENV || 'development')
+// Defense-in-depth: ensure clickjacking protection on every response,
+// including any routes that may bypass the app router.
+app.use(function (req, res, next) {
+    if (!res.getHeader('X-Frame-Options')) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    }
+    next()
+})
 
 app.use(helmet())
-app.use(logger('dev'))
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(cookieParser())
-
-app.use(session({
-    secret: serverConfig.session.secret,
-    resave: serverConfig.session.resave,
-    saveUninitialized: serverConfig.session.saveUninitialized,
-    proxy: serverConfig.session.proxy,
-    cookie: serverConfig.session.cookie
-}))
-
-app.use(passport.initialize())
-app.use(passport.session())
-app.use(flash())
 
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
