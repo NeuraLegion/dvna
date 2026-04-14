@@ -325,6 +325,8 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
+	// Security headers are applied by the /app router middleware so every calc
+	// response path (including auth middleware/alternate flows) carries CSP.
 	applyAppPageSecurityHeaders(res)
 	applyCorsHeaders(req, res)
 	if (!res.getHeader('X-Content-Type-Options')) {

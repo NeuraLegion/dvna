@@ -44,6 +44,9 @@ function setSecurityHeaders(req, res, next) {
         res.setHeader('X-Frame-Options', 'SAMEORIGIN')
     }
 
+    // Set a single consistent CSP for every /app response path.
+    // This must happen here rather than in individual handlers so responses
+    // rendered by auth failures, redirects, or alternate code paths still carry CSP.
     if (!res.getHeader('Content-Security-Policy')) {
         res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
     }
@@ -109,6 +112,9 @@ module.exports = function (app) {
         }
         if (!res.getHeader('X-Frame-Options')) {
             res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+        }
+        if (!res.getHeader('Content-Security-Policy')) {
+            res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; font-src 'self' data: https://maxcdn.bootstrapcdn.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'")
         }
         res.render('app/calc', {output: null})
     })
