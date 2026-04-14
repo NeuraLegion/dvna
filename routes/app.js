@@ -21,19 +21,6 @@ function setCorsHeaders(req, res) {
     return false
 }
 
-function isHttpsRequest(req) {
-    if (req.secure) {
-        return true
-    }
-
-    var forwardedProto = req.headers['x-forwarded-proto']
-    if (typeof forwardedProto === 'string' && forwardedProto.split(',')[0].trim().toLowerCase() === 'https') {
-        return true
-    }
-
-    return false
-}
-
 function setSecurityHeaders(req, res, next) {
     var csp = [
         "default-src 'self'",
@@ -50,7 +37,7 @@ function setSecurityHeaders(req, res, next) {
     res.setHeader('Content-Security-Policy', csp)
     res.setHeader('X-Content-Type-Options', 'nosniff')
 
-    if (isHttpsRequest(req)) {
+    if (req.secure) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
 
@@ -71,6 +58,14 @@ module.exports = function (app) {
 
     app.use('/app', function (req, res, next) {
         setCorsHeaders(req, res)
+        next()
+    })
+
+    app.use('/app', function (req, res, next) {
+        if (req.method === 'OPTIONS') {
+            setCorsHeaders(req, res)
+            return res.sendStatus(204)
+        }
         next()
     })
 
@@ -122,7 +117,10 @@ module.exports = function (app) {
         next()
     }, appHandler.listProducts)
 
-    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
+    router.get('/modifyproduct', authHandler.isAuthenticated, function (req, res, next) {
+        setCorsHeaders(req, res)
+        next()
+    }, appHandler.modifyProduct)
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
