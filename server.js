@@ -9,9 +9,27 @@ var passport = require('passport')
 var flash = require('connect-flash')
 var helmet = require('helmet')
 
+var routes = require('./routes/main')(passport)
+var authHandler = require('./core/authHandler')
+
 var app = express()
 
-app.set('trust proxy', 1)
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
+
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
+app.use(logger('dev'))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(session({
+	secret: 'dvna-secret',
+	resave: false,
+	saveUninitialized: false
+}))
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(flash())
 
 app.use(function (req, res, next) {
 	res.setHeader('X-Frame-Options', 'SAMEORIGIN')
@@ -22,20 +40,20 @@ app.use(function (req, res, next) {
 app.use(helmet.noSniff())
 app.use(helmet.xssFilter())
 app.use(helmet.hidePoweredBy())
-
-app.use(logger('dev'))
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(cookieParser())
-app.use(session({
-	secret: process.env.SESSION_SECRET || 'dvna-secret',
-	resave: false,
-	saveUninitialized: false
+app.use(helmet.contentSecurityPolicy({
+	directives: {
+		defaultSrc: ["'self'"],
+		scriptSrc: ["'self'", 'https://maxcdn.bootstrapcdn.com', 'https://cdnjs.cloudflare.com'],
+		styleSrc: ["'self'", "'unsafe-inline'", 'https://maxcdn.bootstrapcdn.com'],
+		imgSrc: ["'self'", 'data:'],
+		fontSrc: ["'self'", 'https://maxcdn.bootstrapcdn.com'],
+		objectSrc: ["'none'"],
+		baseUri: ["'self'"],
+		frameAncestors: ["'self'"]
+	}
 }))
-app.use(passport.initialize())
-app.use(passport.session())
-app.use(flash())
 
 app.use(express.static(path.join(__dirname, 'public')))
+app.use('/', routes)
 
 module.exports = app
