@@ -18,6 +18,17 @@ function setCorsHeaders(req, res) {
 	return false
 }
 
+function clearSessionCookie(req, res) {
+	var isSecureRequest = req.secure || req.headers['x-forwarded-proto'] === 'https'
+
+	res.clearCookie('connect.sid', {
+		path: '/',
+		httpOnly: true,
+		secure: isSecureRequest,
+		sameSite: 'lax'
+	})
+}
+
 module.exports = function (passport) {
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
 		res.redirect('/learn')
@@ -59,17 +70,15 @@ module.exports = function (passport) {
 				return res.redirect('/')
 			}
 
-			req.session.destroy(function () {
-				var clearCookieOptions = {
-					path: '/',
-					httpOnly: true,
-					sameSite: 'lax',
-					secure: process.env.NODE_ENV === 'production'
-				}
-
-				res.clearCookie('connect.sid', clearCookieOptions)
+			if (req.session) {
+				req.session.destroy(function () {
+					clearSessionCookie(req, res)
+					res.redirect('/')
+				})
+			} else {
+				clearSessionCookie(req, res)
 				res.redirect('/')
-			})
+			}
 		})
 	})
 
