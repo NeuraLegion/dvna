@@ -8,7 +8,22 @@ module.exports = {
         proxy: true,
         cookie: {
             httpOnly: true,
-            secure: process.env.SESSION_COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
+            secure: function (req) {
+                if (!req) {
+                    return process.env.NODE_ENV === 'production'
+                }
+
+                var forwardedProto = req.headers && req.headers['x-forwarded-proto']
+                if (req.secure) {
+                    return true
+                }
+
+                if (typeof forwardedProto === 'string') {
+                    return forwardedProto.split(',')[0].trim().toLowerCase() === 'https'
+                }
+
+                return process.env.NODE_ENV === 'production'
+            },
             sameSite: 'lax',
             path: '/'
         }

@@ -1,5 +1,6 @@
 var express = require('express')
 var session = require('express-session')
+var passport = require('passport')
 var isHttpsRequest = require('./core/isHttpsRequest')
 
 var app = express()
@@ -15,13 +16,12 @@ app.use(session({
         httpOnly: true,
         sameSite: 'lax',
         secure: function (req) {
-            if (process.env.NODE_ENV === 'production') {
-                return isHttpsRequest(req)
-            }
-
-            return false
+            return isHttpsRequest(req)
         }
     }
 }))
+
+app.use(passport.initialize())
+app.use(passport.session())
 
 module.exports = app
