@@ -6,6 +6,18 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+var allowedRedirects = [
+	'/learn',
+	'/app/products',
+	'/app/usersearch',
+	'/app/ping',
+	'/app/modifyproduct',
+	'/app/useredit',
+	'/app/calc',
+	'/app/admin',
+	'/app/admin/users'
+]
+
 function isValidOriginRequest (req) {
 	var origin = req.headers.origin
 	var referer = req.headers.referer
@@ -20,6 +32,26 @@ function isValidOriginRequest (req) {
 	}
 
 	return false
+}
+
+function isAllowedRedirectTarget (target) {
+	if (typeof target !== 'string' || target.length === 0) {
+		return false
+	}
+
+	if (target.indexOf('/') !== 0) {
+		return false
+	}
+
+	if (target.indexOf('//') === 0) {
+		return false
+	}
+
+	if (target.indexOf('\\') !== -1) {
+		return false
+	}
+
+	return allowedRedirects.indexOf(target) !== -1
 }
 
 module.exports.userSearch = function (req, res) {
@@ -220,10 +252,10 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
+	if (isAllowedRedirectTarget(req.query.url)) {
 		res.redirect(req.query.url)
 	} else {
-		res.send('invalid redirect url')
+		res.status(400).send('invalid redirect url')
 	}
 }
 
