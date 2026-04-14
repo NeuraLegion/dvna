@@ -6,8 +6,24 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function isSameOriginRequest(req) {
+	var origin = req.headers.origin
+	var referer = req.headers.referer
+	var expected = req.protocol + '://' + req.get('host')
+
+	if (origin) {
+		return origin === expected
+	}
+
+	if (referer) {
+		return referer.indexOf(expected + '/') === 0 || referer === expected
+	}
+
+	return false
+}
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'"
 	db.sequelize.query(query, {
 		model: db.User
 	}).then(user => {
@@ -125,7 +141,8 @@ module.exports.modifyProductSubmit = function (req, res) {
 			output = {
 				product: product
 			}
-			req.flash('danger',err)
+			console.error(err)
+			req.flash('danger', 'An error occurred while saving the product.')
 			res.render('app/modifyproduct', {
 				output: output
 			})
@@ -137,37 +154,44 @@ module.exports.userEdit = function (req, res) {
 	res.render('app/useredit', {
 		userId: req.user.id,
 		userEmail: req.user.email,
-		userName: req.user.name
+		userName: req.user.name,
+		csrfToken: req.csrfToken ? req.csrfToken() : ''
 	})
 }
 
 module.exports.userEditSubmit = function (req, res) {
+	if (!isSameOriginRequest(req)) {
+		req.flash('danger', 'Invalid request origin')
+		return res.status(403).render('app/useredit', {
+			userId: req.user.id,
+			userEmail: req.user.email,
+			userName: req.user.name,
+			csrfToken: req.csrfToken ? req.csrfToken() : ''
+		})
+	}
+
 	db.User.find({
 		where: {
-			'id': req.body.id
-		}		
+			'id': req.user.id
+		}
 	}).then(user =>{
-		if(req.body.password.length>0){
-			if(req.body.password.length>0){
-				if (req.body.password == req.body.cpassword) {
-					user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
-				}else{
-					req.flash('warning', 'Passwords dont match')
-					res.render('app/useredit', {
-						userId: req.user.id,
-						userEmail: req.user.email,
-						userName: req.user.name,
-					})
-					return		
-				}
-			}else{
-				req.flash('warning', 'Invalid Password')
+		if (!user) {
+			req.flash('danger', 'User not found')
+			return res.redirect('/app/useredit')
+		}
+
+		if (req.body.password && req.body.password.length > 0) {
+			if (req.body.password == req.body.cpassword) {
+				user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
+			} else {
+				req.flash('warning', 'Passwords dont match')
 				res.render('app/useredit', {
 					userId: req.user.id,
 					userEmail: req.user.email,
 					userName: req.user.name,
+					csrfToken: req.csrfToken ? req.csrfToken() : ''
 				})
-				return
+				return		
 			}
 		}
 		user.email = req.body.email
@@ -175,9 +199,10 @@ module.exports.userEditSubmit = function (req, res) {
 		user.save().then(function () {
 			req.flash('success',"Updated successfully")
 			res.render('app/useredit', {
-				userId: req.body.id,
-				userEmail: req.body.email,
-				userName: req.body.name,
+				userId: req.user.id,
+				userEmail: user.email,
+				userName: user.name,
+				csrfToken: req.csrfToken ? req.csrfToken() : ''
 			})
 		})
 	})

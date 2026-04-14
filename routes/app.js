@@ -2,7 +2,54 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
+var allowedOrigins = [
+    process.env.APP_ORIGIN
+].filter(Boolean)
+
+function setCorsHeaders(req, res, next) {
+    var origin = req.headers.origin
+
+    if (origin && allowedOrigins.indexOf(origin) !== -1) {
+        res.set('Access-Control-Allow-Origin', origin)
+        res.set('Vary', 'Origin')
+        res.set('Access-Control-Allow-Credentials', 'true')
+    }
+
+    next()
+}
+
+function setFrameOptionsHeader(req, res, next) {
+    res.set('X-Frame-Options', 'SAMEORIGIN')
+    next()
+}
+
+function setHstsHeader(req, res, next) {
+    var isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https'
+
+    if (isHttps) {
+        res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    }
+
+    next()
+}
+
+function setCspHeader(req, res, next) {
+    res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+    next()
+}
+
+function setNoSniffHeader(req, res, next) {
+    res.set('X-Content-Type-Options', 'nosniff')
+    next()
+}
+
 module.exports = function () {
+    router.use(setCorsHeaders)
+    router.use(setFrameOptionsHeader)
+    router.use(setHstsHeader)
+    router.use(setCspHeader)
+    router.use(setNoSniffHeader)
+
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
     })
