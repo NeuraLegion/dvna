@@ -8,7 +8,7 @@ module.exports = {
         proxy: true,
         cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.SESSION_COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
             sameSite: 'lax'
         }
     }
