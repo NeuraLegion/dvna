@@ -1,19 +1,23 @@
 var express = require('express')
-var session = require('express-session')
-var passport = require('passport')
-
 var app = express()
+var passport = require('passport')
+var session = require('express-session')
+var flash = require('connect-flash')
 
-app.set('trust proxy', 1)
+// Security headers
+app.use(function (req, res, next) {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+    next()
+})
 
 app.use(session({
-  secret: 'keyboard cat',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+    secret: 'dvna-secret',
+    resave: false,
+    saveUninitialized: false
 }))
 
 app.use(passport.initialize())
 app.use(passport.session())
+app.use(flash())
 
 module.exports = app
