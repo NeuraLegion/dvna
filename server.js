@@ -1,30 +1,27 @@
 var express = require('express')
-var app = express()
+var path = require('path')
 var session = require('express-session')
+var passport = require('passport')
+var flash = require('connect-flash')
+var appConfig = require('./config/server')
 
-// Trust the first proxy hop so req.secure works correctly behind TLS terminators.
-app.set('trust proxy', 1)
+var app = express()
 
-app.use(function (req, res, next) {
-    // Mark the request as secure when TLS is terminated upstream and the proxy
-    // forwards the original protocol. This helps express-session set Secure cookies
-    // in production HTTPS deployments while avoiding breakage on local HTTP dev.
-    if (req.headers['x-forwarded-proto'] === 'https') {
-        req.secure = true
-    }
-    next()
-})
-
+// existing middleware/setup remains unchanged where applicable
 app.use(session({
-    secret: 'dvanonsecret',
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
+    secret: appConfig.session.secret,
+    resave: appConfig.session.resave,
+    saveUninitialized: appConfig.session.saveUninitialized,
+    proxy: appConfig.session.proxy,
     cookie: {
-        httpOnly: true,
-        secure: 'auto',
-        sameSite: 'lax'
+        httpOnly: appConfig.session.cookie.httpOnly,
+        secure: true,
+        sameSite: appConfig.session.cookie.sameSite
     }
 }))
+
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(flash())
 
 module.exports = app
