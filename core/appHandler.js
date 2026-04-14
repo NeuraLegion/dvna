@@ -36,6 +36,7 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
+	res.setHeader('X-Content-Type-Options', 'nosniff')
 	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
 		output = stdout + stderr
 		res.render('app/ping', {
