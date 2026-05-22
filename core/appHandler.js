@@ -183,6 +183,13 @@ module.exports.userEditSubmit = function (req, res) {
 	})
 }
 
+var allowedRedirects = {
+	'/': '/',
+	'/learn': '/learn',
+	'/login': '/login',
+	'/app/products': '/app/products'
+}
+
 module.exports.redirect = function (req, res) {
 	var redirectUrl = allowedRedirects[req.query.url]
 	if (redirectUrl) {
@@ -190,13 +197,6 @@ module.exports.redirect = function (req, res) {
 		return
 	}
 	res.status(400).send('invalid redirect url')
-}
-
-var allowedRedirects = {
-	'/': '/',
-	'/learn': '/learn',
-	'/login': '/login',
-	'/app/products': '/app/products'
 }
 
 module.exports.calc = function (req, res) {

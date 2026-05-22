@@ -34,7 +34,7 @@ app.use(passport.session())
 // Initialize express-flash
 app.use(require('express-flash')());
 
-app.use(function (req, res, next) {
+app.use(function blockOptionsMethod(req, res, next) {
   if (req.method === 'OPTIONS') {
     res.status(405).send('Method Not Allowed')
     return
