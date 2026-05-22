@@ -5,11 +5,9 @@ services:
   app:
     build:
       context: ./
-      dockerfile: Dockerfile-dev
+      dockerfile: Dockerfile
     ports:
       - 9090:9090
-    volumes:
-      - .:/app
     depends_on:
       - mysql-db
     env_file:
