@@ -45,8 +45,8 @@ module.exports.userSearch = function (req, res) {
 module.exports.ping = function (req, res) {
 	// FIX: Validate the address input and use execFile with argument array to prevent command injection
 	var address = req.body.address
-	// Allow only valid hostname/IP characters
-	if (!address || !/^[a-zA-Z0-9.\-_]{1,253}$/.test(address)) {
+	// Allow only valid hostname/IP characters (RFC 952/1123: no underscores)
+	if (!address || !/^[a-zA-Z0-9.\-]{1,253}$/.test(address)) {
 		res.render('app/ping', {
 			output: 'Invalid address: only hostnames and IP addresses are allowed'
 		})
@@ -184,10 +184,10 @@ module.exports.userEditSubmit = function (req, res) {
 			return
 		}
 		if(req.body.password.length>0){
-			if (req.body.password == req.body.cpassword) {
+			if (req.body.password === req.body.cpassword) {
 				user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
 			}else{
-				req.flash('warning', 'Passwords dont match')
+				req.flash('warning', "Passwords don't match")
 				res.render('app/useredit', {
 					userId: req.user.id,
 					userEmail: req.user.email,
@@ -210,11 +210,12 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	// FIX: Validate that the redirect URL is relative (starts with /) or belongs to allowed hosts
+	// FIX: Validate that the redirect URL is strictly relative (no scheme/host)
 	if (req.query.url) {
 		var url = req.query.url
-		// Only allow relative URLs (starting with /) to prevent open redirect
-		if (url.startsWith('/') && !url.startsWith('//')) {
+		// Only allow relative URLs that start with / but not // (protocol-relative)
+		// Also reject any URL containing a colon in the first segment (prevents javascript:, data:, etc.)
+		if (url.startsWith('/') && !url.startsWith('//') && !url.match(/^\/[^/]*:/)) {
 			res.redirect(url)
 		} else {
 			res.status(400).send('Invalid redirect URL: only relative paths are allowed')
@@ -231,9 +232,9 @@ module.exports.calc = function (req, res) {
 			// Restrict to only safe math operations by using a limited scope
 			var limitedScope = {}
 			var result = safeMath.evaluate(req.body.eqn, limitedScope)
-			// Ensure result is a safe primitive (number or string)
-			if (typeof result === 'function') {
-				throw new Error('Invalid expression: functions are not allowed')
+			// Ensure result is a safe primitive (number, boolean, or BigNumber - not function/object)
+			if (typeof result === 'function' || (typeof result === 'object' && result !== null && typeof result.toNumber !== 'function')) {
+				throw new Error('Invalid expression: complex objects are not allowed')
 			}
 			res.render('app/calc', {
 				output: String(result)

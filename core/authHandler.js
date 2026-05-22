@@ -5,6 +5,16 @@ var crypto = require('crypto')
 // FIX: Store reset tokens in memory (production should use DB/Redis with expiry)
 var resetTokens = {}
 
+// FIX: Periodic cleanup of expired tokens to prevent memory leak
+setInterval(function() {
+  var now = Date.now()
+  Object.keys(resetTokens).forEach(function(login) {
+    if (resetTokens[login].expiry < now) {
+      delete resetTokens[login]
+    }
+  })
+}, 60 * 60 * 1000) // Clean up every hour
+
 module.exports.isAuthenticated = function (req, res, next) {
 	if (req.isAuthenticated()) {
 		req.flash('authenticated', true)
@@ -91,7 +101,7 @@ module.exports.resetPwSubmit = function (req, res) {
 					if (storedReset && storedReset.token === req.body.token && Date.now() < storedReset.expiry) {
 						user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
 						user.save().then(function () {
-							// Invalidate token after use
+							// FIX: Invalidate token only after successful save
 							delete resetTokens[req.body.login]
 							req.flash('success', "Password successfully reset")
 							res.redirect('/login')
