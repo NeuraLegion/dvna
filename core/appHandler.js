@@ -184,19 +184,19 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	var redirectUrl = req.query.url
-	if (isSafeLocalRedirect(redirectUrl)) {
+	var redirectUrl = allowedRedirects[req.query.url]
+	if (redirectUrl) {
 		res.redirect(redirectUrl)
 		return
 	}
 	res.status(400).send('invalid redirect url')
 }
 
-var isSafeLocalRedirect = function (redirectUrl) {
-	return typeof redirectUrl === 'string' &&
-		redirectUrl.charAt(0) === '/' &&
-		redirectUrl.charAt(1) !== '/' &&
-		redirectUrl.indexOf('\\') === -1
+var allowedRedirects = {
+	'/': '/',
+	'/learn': '/learn',
+	'/login': '/login',
+	'/app/products': '/app/products'
 }
 
 module.exports.calc = function (req, res) {
