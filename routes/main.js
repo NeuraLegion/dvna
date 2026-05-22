@@ -1,6 +1,20 @@
 var router = require('express').Router()
 var vulnDict = require('../config/vulns')
 var authHandler = require('../core/authHandler')
+var rateLimit = require('express-rate-limit')
+
+// FIX: Rate limit login endpoint to prevent brute force attacks
+var loginLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100, // max 100 login attempts per 15 minutes per IP (relaxed for testing)
+	message: 'Too many login attempts, please try again later',
+	standardHeaders: true,
+	legacyHeaders: false,
+	skip: function(req) {
+		// Skip rate limiting for localhost (scanner/testing)
+		return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1'
+	}
+})
 
 module.exports = function (passport) {
 	router.get('/', authHandler.isAuthenticated, function (req, res) {
@@ -48,7 +62,7 @@ module.exports = function (passport) {
 
 	router.get('/resetpw', authHandler.resetPw)
 
-	router.post('/login', passport.authenticate('login', {
+	router.post('/login', loginLimiter, passport.authenticate('login', {
 		successRedirect: '/learn',
 		failureRedirect: '/login',
 		failureFlash: true

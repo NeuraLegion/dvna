@@ -210,15 +210,21 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	// FIX: Validate that the redirect URL is strictly relative (no scheme/host)
+	// FIX: Validate that the redirect URL is strictly a relative path with no host
 	if (req.query.url) {
-		var url = req.query.url
-		// Only allow relative URLs that start with / but not // (protocol-relative)
-		// Also reject any URL containing a colon in the first segment (prevents javascript:, data:, etc.)
-		if (url.startsWith('/') && !url.startsWith('//') && !url.match(/^\/[^/]*:/)) {
-			res.redirect(url)
-		} else {
-			res.status(400).send('Invalid redirect URL: only relative paths are allowed')
+		var input = req.query.url
+		// Parse with a base URL - if the parsed URL has a different origin, it's absolute
+		try {
+			var base = 'http://localhost'
+			var parsed = new URL(input, base)
+			// Only allow if the origin matches our base (meaning input was a relative path)
+			if (parsed.origin === base && !input.startsWith('//')) {
+				res.redirect(parsed.pathname + parsed.search + parsed.hash)
+			} else {
+				res.status(400).send('Invalid redirect URL: only relative paths are allowed')
+			}
+		} catch(e) {
+			res.status(400).send('Invalid redirect URL')
 		}
 	} else {
 		res.send('invalid redirect url')
@@ -232,8 +238,8 @@ module.exports.calc = function (req, res) {
 			// Restrict to only safe math operations by using a limited scope
 			var limitedScope = {}
 			var result = safeMath.evaluate(req.body.eqn, limitedScope)
-			// Ensure result is a safe primitive (number, boolean, or BigNumber - not function/object)
-			if (typeof result === 'function' || (typeof result === 'object' && result !== null && typeof result.toNumber !== 'function')) {
+			// Ensure result is a safe primitive (number, BigNumber - not function/plain object)
+			if (typeof result === 'function' || (typeof result === 'object' && result !== null && typeof result.toNumber !== 'function' && !Array.isArray(result))) {
 				throw new Error('Invalid expression: complex objects are not allowed')
 			}
 			res.render('app/calc', {
