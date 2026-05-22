@@ -34,6 +34,14 @@ app.use(passport.session())
 // Initialize express-flash
 app.use(require('express-flash')());
 
+app.use(function (req, res, next) {
+  if (req.method === 'OPTIONS') {
+    res.status(405).send('Method Not Allowed')
+    return
+  }
+  next()
+})
+
 // Routing
 app.use('/app',require('./routes/app')())
 app.use('/',require('./routes/main')(passport))
