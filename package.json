@@ -13,7 +13,8 @@
   "author": "sns",
   "license": "MIT",
   "dependencies": {
-    "bcrypt": "^1.0.3",
+    "bcrypt": "^5.1.1",
+    "crypto-random-string": "^5.0.0",
     "csurf": "^1.9.0",
     "ejs": "^2.5.7",
     "express": "^4.16.2",
@@ -22,14 +23,16 @@
     "express-session": "^1.15.6",
     "flash": "^1.1.0",
     "libxmljs": "0.19.7",
-    "mathjs": "3.10.1",
+    "libxmljs2": "^0.37.0",
+    "mathjs": "^9.5.2",
     "md5": "^2.2.1",
     "morgan": "^1.9.0",
-    "mysql2": "^1.4.2",
+    "mysql2": "^3.22.3",
     "node-serialize": "0.0.4",
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
     "sequelize": "^4.13.10",
+    "validator": "^13.15.35",
     "winston": "^3.0.0",
     "x-xss-protection": "^1.1.0"
   }

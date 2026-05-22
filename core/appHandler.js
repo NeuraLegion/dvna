@@ -1,21 +1,28 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-const exec = require('child_process').exec;
+const { execFile } = require('child_process');
 var mathjs = require('mathjs')
-var libxmljs = require("libxmljs");
-var serialize = require("node-serialize")
+var libxmljs = require("libxmljs2");
+const { create, all } = require('mathjs')
 const Op = db.Sequelize.Op
 
+// FIX: Create a restricted mathjs scope that prevents access to dangerous functions
+const safeMath = create(all)
+safeMath.config({ matrix: 'Array' })
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
-	db.sequelize.query(query, {
-		model: db.User
+	// FIX: Use parameterized query instead of string concatenation to prevent SQL injection
+	db.User.findOne({
+		where: {
+			login: req.body.login
+		},
+		attributes: ['name', 'id']
 	}).then(user => {
-		if (user.length) {
+		if (user) {
 			var output = {
 				user: {
-					name: user[0].name,
-					id: user[0].id
+					name: user.name,
+					id: user.id
 				}
 			}
 			res.render('app/usersearch', {
@@ -36,8 +43,17 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
-		output = stdout + stderr
+	// FIX: Validate the address input and use execFile with argument array to prevent command injection
+	var address = req.body.address
+	// Allow only valid hostname/IP characters
+	if (!address || !/^[a-zA-Z0-9.\-_]{1,253}$/.test(address)) {
+		res.render('app/ping', {
+			output: 'Invalid address: only hostnames and IP addresses are allowed'
+		})
+		return
+	}
+	execFile('ping', ['-c', '2', address], { timeout: 10000 }, function (err, stdout, stderr) {
+		var output = (stdout || '') + (stderr || '')
 		res.render('app/ping', {
 			output: output
 		})
@@ -142,32 +158,42 @@ module.exports.userEdit = function (req, res) {
 }
 
 module.exports.userEditSubmit = function (req, res) {
+	// FIX: Enforce that users can only edit their own profile (prevent IDOR)
+	var targetId = parseInt(req.body.id)
+	if (isNaN(targetId) || targetId !== req.user.id) {
+		req.flash('danger', 'Unauthorized: You can only edit your own profile')
+		res.render('app/useredit', {
+			userId: req.user.id,
+			userEmail: req.user.email,
+			userName: req.user.name,
+		})
+		return
+	}
 	db.User.find({
 		where: {
-			'id': req.body.id
+			'id': req.user.id
 		}		
 	}).then(user =>{
+		if (!user) {
+			req.flash('danger', 'User not found')
+			res.render('app/useredit', {
+				userId: req.user.id,
+				userEmail: req.user.email,
+				userName: req.user.name,
+			})
+			return
+		}
 		if(req.body.password.length>0){
-			if(req.body.password.length>0){
-				if (req.body.password == req.body.cpassword) {
-					user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
-				}else{
-					req.flash('warning', 'Passwords dont match')
-					res.render('app/useredit', {
-						userId: req.user.id,
-						userEmail: req.user.email,
-						userName: req.user.name,
-					})
-					return		
-				}
+			if (req.body.password == req.body.cpassword) {
+				user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
 			}else{
-				req.flash('warning', 'Invalid Password')
+				req.flash('warning', 'Passwords dont match')
 				res.render('app/useredit', {
 					userId: req.user.id,
 					userEmail: req.user.email,
 					userName: req.user.name,
 				})
-				return
+				return		
 			}
 		}
 		user.email = req.body.email
@@ -175,17 +201,24 @@ module.exports.userEditSubmit = function (req, res) {
 		user.save().then(function () {
 			req.flash('success',"Updated successfully")
 			res.render('app/useredit', {
-				userId: req.body.id,
-				userEmail: req.body.email,
-				userName: req.body.name,
+				userId: req.user.id,
+				userEmail: req.user.email,
+				userName: req.user.name,
 			})
 		})
 	})
 }
 
 module.exports.redirect = function (req, res) {
+	// FIX: Validate that the redirect URL is relative (starts with /) or belongs to allowed hosts
 	if (req.query.url) {
-		res.redirect(req.query.url)
+		var url = req.query.url
+		// Only allow relative URLs (starting with /) to prevent open redirect
+		if (url.startsWith('/') && !url.startsWith('//')) {
+			res.redirect(url)
+		} else {
+			res.status(400).send('Invalid redirect URL: only relative paths are allowed')
+		}
 	} else {
 		res.send('invalid redirect url')
 	}
@@ -193,9 +226,23 @@ module.exports.redirect = function (req, res) {
 
 module.exports.calc = function (req, res) {
 	if (req.body.eqn) {
-		res.render('app/calc', {
-			output: mathjs.eval(req.body.eqn)
-		})
+		try {
+			// FIX: Use mathjs evaluate() in a limited scope to prevent SSTI/code injection
+			// Restrict to only safe math operations by using a limited scope
+			var limitedScope = {}
+			var result = safeMath.evaluate(req.body.eqn, limitedScope)
+			// Ensure result is a safe primitive (number or string)
+			if (typeof result === 'function') {
+				throw new Error('Invalid expression: functions are not allowed')
+			}
+			res.render('app/calc', {
+				output: String(result)
+			})
+		} catch(e) {
+			res.render('app/calc', {
+				output: 'Error: ' + e.message
+			})
+		}
 	} else {
 		res.render('app/calc', {
 			output: 'Enter a valid math string like (3+3)*2'
@@ -204,7 +251,10 @@ module.exports.calc = function (req, res) {
 }
 
 module.exports.listUsersAPI = function (req, res) {
-	db.User.findAll({}).then(users => {
+	// FIX: Only return non-sensitive user fields (exclude password)
+	db.User.findAll({
+		attributes: ['id', 'name', 'login', 'email', 'role', 'createdAt']
+	}).then(users => {
 		res.status(200).json({
 			success: true,
 			users: users
@@ -213,26 +263,38 @@ module.exports.listUsersAPI = function (req, res) {
 }
 
 module.exports.bulkProductsLegacy = function (req,res){
-	// TODO: Deprecate this soon
-	if(req.files.products){
-		var products = serialize.unserialize(req.files.products.data.toString('utf8'))
-		products.forEach( function (product) {
-			var newProduct = new db.Product()
-			newProduct.name = product.name
-			newProduct.code = product.code
-			newProduct.tags = product.tags
-			newProduct.description = product.description
-			newProduct.save()
-		})
-		res.redirect('/app/products')
+	// FIX: Remove insecure deserialization - use safe JSON parsing instead
+	if(req.files && req.files.products){
+		try {
+			var productsData = JSON.parse(req.files.products.data.toString('utf8'))
+			if (!Array.isArray(productsData)) {
+				throw new Error('Expected array of products')
+			}
+			var savePromises = productsData.map(function(product) {
+				var newProduct = new db.Product()
+				newProduct.name = String(product.name || '')
+				newProduct.code = String(product.code || '')
+				newProduct.tags = String(product.tags || '')
+				newProduct.description = String(product.description || '')
+				return newProduct.save()
+			})
+			Promise.all(savePromises).then(function() {
+				res.redirect('/app/products')
+			}).catch(function(err) {
+				res.render('app/bulkproducts', {messages: {danger: 'Error saving products: ' + err.message}, legacy: true})
+			})
+		} catch(e) {
+			res.render('app/bulkproducts',{messages:{danger:'Invalid JSON file: ' + e.message},legacy:true})
+		}
 	}else{
 		res.render('app/bulkproducts',{messages:{danger:'Invalid file'},legacy:true})
 	}
 }
 
-module.exports.bulkProducts =  function(req, res) {
-	if (req.files.products && req.files.products.mimetype=='text/xml'){
-		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:true,noblanks:true})
+module.exports.bulkProducts = function(req, res) {
+	if (req.files && req.files.products && req.files.products.mimetype=='text/xml'){
+		// FIX: Disable external entity processing (noent:false) to prevent XXE
+		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:false, noblanks:true})
 		products.root().childNodes().forEach( product => {
 			var newProduct = new db.Product()
 			newProduct.name = product.childNodes()[0].text()

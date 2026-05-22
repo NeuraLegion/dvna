@@ -1,6 +1,9 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-var md5 = require('md5')
+var crypto = require('crypto')
+
+// FIX: Store reset tokens in memory (production should use DB/Redis with expiry)
+var resetTokens = {}
 
 module.exports.isAuthenticated = function (req, res, next) {
 	if (req.isAuthenticated()) {
@@ -24,7 +27,13 @@ module.exports.forgotPw = function (req, res) {
 			}
 		}).then(user => {
 			if (user) {
-				// Send reset link via email happens here
+				// FIX: Use cryptographically secure random token instead of md5(username)
+				var token = crypto.randomBytes(32).toString('hex')
+				var expiry = Date.now() + (60 * 60 * 1000) // 1 hour expiry
+				resetTokens[req.body.login] = { token: token, expiry: expiry }
+				// In production: send token via email
+				// For dev: log token (would be sent via email in production)
+				console.log('Password reset token for', req.body.login, ':', token)
 				req.flash('info', 'Check email for reset link')
 				res.redirect('/login')
 			} else {
@@ -46,13 +55,15 @@ module.exports.resetPw = function (req, res) {
 			}
 		}).then(user => {
 			if (user) {
-				if (req.query.token == md5(req.query.login)) {
+				// FIX: Validate token against secure stored token with expiry check
+				var storedReset = resetTokens[req.query.login]
+				if (storedReset && storedReset.token === req.query.token && Date.now() < storedReset.expiry) {
 					res.render('resetpw', {
 						login: req.query.login,
 						token: req.query.token
 					})
 				} else {
-					req.flash('danger', "Invalid reset token")
+					req.flash('danger', "Invalid or expired reset token")
 					res.redirect('/forgotpw')
 				}
 			} else {
@@ -75,14 +86,18 @@ module.exports.resetPwSubmit = function (req, res) {
 				}
 			}).then(user => {
 				if (user) {
-					if (req.body.token == md5(req.body.login)) {
+					// FIX: Validate against secure stored token
+					var storedReset = resetTokens[req.body.login]
+					if (storedReset && storedReset.token === req.body.token && Date.now() < storedReset.expiry) {
 						user.password = bCrypt.hashSync(req.body.password, bCrypt.genSaltSync(10), null)
 						user.save().then(function () {
-							req.flash('success', "Passowrd successfully reset")
+							// Invalidate token after use
+							delete resetTokens[req.body.login]
+							req.flash('success', "Password successfully reset")
 							res.redirect('/login')
 						})
 					} else {
-						req.flash('danger', "Invalid reset token")
+						req.flash('danger', "Invalid or expired reset token")
 						res.redirect('/forgotpw')
 					}
 				} else {
@@ -91,10 +106,10 @@ module.exports.resetPwSubmit = function (req, res) {
 				}
 			})
 		} else {
-			req.flash('danger', "Passowords do not match")
+			req.flash('danger', "Passwords do not match")
 			res.render('resetpw', {
-				login: req.query.login,
-				token: req.query.token
+				login: req.body.login,
+				token: req.body.token
 			})
 		}
 
