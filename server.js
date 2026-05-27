@@ -28,10 +28,15 @@ app.use(session({
   cookie: { secure: false, sameSite: 'strict', httpOnly: true }
 }))
 
-// Block OPTIONS requests to avoid exposing supported methods
-app.use((req, res, next) => {
+// Disable automatic OPTIONS handling and reject the method consistently
+app.options('*', function (req, res) {
+  res.set('Allow', 'GET, POST')
+  return res.status(405).send('Method Not Allowed')
+})
+app.use(function (req, res, next) {
   if (req.method === 'OPTIONS') {
-    return res.status(405).end()
+    res.set('Allow', 'GET, POST')
+    return res.status(405).send('Method Not Allowed')
   }
   next()
 })
