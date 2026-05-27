@@ -102,6 +102,9 @@ module.exports = function () {
     })
 
     router.get('/admin/users', authHandler.isAuthenticated, validateOrigin, function(req, res){
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).send('Forbidden')
+        }
         if (Object.keys(req.query || {}).length > 0) {
             return res.status(400).send('Bad Request')
         }

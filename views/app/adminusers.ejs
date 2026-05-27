@@ -22,26 +22,22 @@
             <tr>
                 <th >User ID</th>
                 <th>Name</th>
-                <th>Email</th>
-                <th></th>
             </tr>
         </table>
     </div></div></div>
     <% include ../common/footer %>
     <script type="text/javascript">
         function appendUsers(users) {
-            var table = document.getElementById('users-table'),i=0;
-            var j = table.rows.length
-            while(i<=users.length){
+            var table = document.getElementById('users-table'), i = 0;
+            var j = table.rows.length;
+            while (i < users.length) {
                 var row = table.insertRow(j);
                 var c_id = row.insertCell(0);
                 var c_name = row.insertCell(1);
-                var c_email = row.insertCell(2);
-                c_id.innerHTML = users[i].id;
-                c_name.innerHTML = users[i].name;
-                c_email.innerHTML = users[i].email;
-                i=i+1;
-                j=j+1;
+                c_id.textContent = users[i].id;
+                c_name.textContent = users[i].name;
+                i = i + 1;
+                j = j + 1;
             }
         }
 

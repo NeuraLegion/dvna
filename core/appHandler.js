@@ -229,11 +229,16 @@ module.exports.listUsersAPI = function (req, res) {
 		return res.status(405).send('Method Not Allowed')
 	}
 	db.User.findAll({
-		attributes: ['id', 'name', 'login']
+		attributes: ['id', 'name'],
+		raw: true
 	}).then(users => {
+		const safeUsers = users.map(user => ({
+			id: user.id,
+			name: user.name
+		}))
 		res.status(200).json({
 			success: true,
-			users: users
+			users: safeUsers
 		})
 	})
 }
