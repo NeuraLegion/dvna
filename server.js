@@ -25,7 +25,7 @@ app.use(session({
   secret: 'keyboard cat',
   resave: true,
   saveUninitialized: true,
-  cookie: { secure: false, sameSite: 'strict' }
+  cookie: { secure: false, sameSite: 'strict', httpOnly: true }
 }))
 
 // Block OPTIONS requests to avoid exposing supported methods

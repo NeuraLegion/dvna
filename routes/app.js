@@ -47,21 +47,31 @@ module.exports = function () {
 
     router.get('/redirect', appHandler.redirect)
 
-    router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
+    function validateOrigin(req, res, next) {
+        const origin = req.get('origin')
+        const referer = req.get('referer')
+        const allowedOrigin = req.protocol + '://' + req.get('host')
+        if ((origin && origin !== allowedOrigin) || (referer && !referer.startsWith(allowedOrigin))) {
+            return res.status(403).send('Forbidden')
+        }
+        next()
+    }
 
-    router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
+    router.post('/usersearch', authHandler.isAuthenticated, validateOrigin, appHandler.userSearch)
 
-    router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
+    router.post('/ping', authHandler.isAuthenticated, validateOrigin, appHandler.ping)
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
+    router.post('/products', authHandler.isAuthenticated, validateOrigin, appHandler.productSearch)
 
-    router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, validateOrigin, appHandler.modifyProductSubmit)
 
-    router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
+    router.post('/useredit', authHandler.isAuthenticated, validateOrigin, appHandler.userEditSubmit)
 
-    router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
+    router.post('/calc', authHandler.isAuthenticated, validateOrigin, appHandler.calc)
 
-    router.post('/bulkproductslegacy', authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
+    router.post('/bulkproducts', authHandler.isAuthenticated, validateOrigin, appHandler.bulkProducts)
+
+    router.post('/bulkproductslegacy', authHandler.isAuthenticated, validateOrigin, appHandler.bulkProductsLegacy)
 
     return router
 }

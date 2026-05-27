@@ -67,6 +67,12 @@ module.exports.resetPw = function (req, res) {
 }
 
 module.exports.resetPwSubmit = function (req, res) {
+	const origin = req.get('origin')
+	const referer = req.get('referer')
+	const allowedOrigin = req.protocol + '://' + req.get('host')
+	if ((origin && origin !== allowedOrigin) || (referer && !referer.startsWith(allowedOrigin))) {
+		return res.status(403).send('Forbidden')
+	}
 	if (req.body.password && req.body.cpassword && req.body.login && req.body.token) {
 		if (req.body.password == req.body.cpassword) {
 			db.User.find({

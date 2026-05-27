@@ -145,6 +145,9 @@ module.exports.userEdit = function (req, res) {
 }
 
 module.exports.userEditSubmit = function (req, res) {
+	if (String(req.body.id) !== String(req.user.id)) {
+		return res.status(403).send('Forbidden')
+	}
 	db.User.find({
 		where: {
 			'id': req.body.id
