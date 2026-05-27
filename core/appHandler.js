@@ -222,25 +222,14 @@ module.exports.listUsersAPI = function (req, res) {
 }
 
 module.exports.bulkProductsLegacy = function (req,res){
-	// TODO: Deprecate this soon
-	if(req.files.products){
-		var products = serialize.unserialize(req.files.products.data.toString('utf8'))
-		products.forEach( function (product) {
-			var newProduct = new db.Product()
-			newProduct.name = product.name
-			newProduct.code = product.code
-			newProduct.tags = product.tags
-			newProduct.description = product.description
-			newProduct.save()
-		})
-		res.redirect('/app/products')
-	}else{
-		res.render('app/bulkproducts',{messages:{danger:'Invalid file'},legacy:true})
-	}
+	return res.status(403).send('Forbidden')
 }
 
 module.exports.bulkProducts =  function(req, res) {
-	if (req.files.products && req.files.products.mimetype=='text/xml'){
+	if (req.method !== 'POST') {
+		return res.status(405).send('Method Not Allowed')
+	}
+	if (req.files && req.files.products && req.files.products.mimetype=='text/xml'){
 		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:true,noblanks:true})
 		products.root().childNodes().forEach( product => {
 			var newProduct = new db.Product()

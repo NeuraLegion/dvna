@@ -20,7 +20,7 @@ module.exports = function () {
     })
 
     router.get('/bulkproducts', authHandler.isAuthenticated, function (req, res) {
-        res.render('app/bulkproducts', { legacy: req.query.legacy === 'true' })
+        res.render('app/bulkproducts', { legacy: false })
     })
 
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
