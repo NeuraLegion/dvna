@@ -7,10 +7,18 @@ module.exports = function () {
         res.redirect('/learn')
     })
 
-    router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
+    router.get('/usersearch', authHandler.isAuthenticated, validateOrigin, function (req, res) {
+        if (Object.keys(req.query || {}).length > 0) {
+            return res.status(400).send('Bad Request')
+        }
+        if (!req.session) {
+            return res.status(403).send('Forbidden')
+        }
+        const formToken = req.csrfToken()
+        req.session.csrfFormToken = formToken
         res.render('app/usersearch', {
             output: null,
-            csrfToken: req.csrfToken()
+            csrfToken: formToken
         })
     })
 
@@ -102,7 +110,12 @@ module.exports = function () {
         next()
     }
 
-    router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
+    router.post('/usersearch', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        return next()
+    }, appHandler.userSearch)
 
     router.post('/ping', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
         if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
