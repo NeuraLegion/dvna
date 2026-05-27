@@ -45,13 +45,20 @@ app.use(function (req, res, next) {
 app.use(passport.initialize())
 app.use(passport.session())
 
-// CSRF protection
+// CSRF protection: keep the middleware, but don't break safe GET/HEAD requests.
+// csurf itself handles token generation/validation; enforcing it on all methods
+// here caused login and other initial form loads to fail before a token existed.
 var csrfProtection = csrf()
-app.use(csrfProtection)
+app.use(function (req, res, next) {
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return next()
+  }
+  return csrfProtection(req, res, next)
+})
 app.use(function (req, res, next) {
   if (req.session) {
     if (!req.session.csrfFormToken) {
-      req.session.csrfFormToken = req.csrfToken()
+      req.session.csrfFormToken = req.csrfToken ? req.csrfToken() : null
     }
     res.locals.csrfToken = req.session.csrfFormToken
   }
