@@ -40,7 +40,16 @@ module.exports = function () {
         })
     })
 
-    router.get('/admin/usersapi', authHandler.isAuthenticated, validateOrigin, appHandler.listUsersAPI)
+    router.get('/admin/usersapi', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.csrfToken || req.method !== 'GET') {
+            return res.status(403).send('Forbidden')
+        }
+        const token = req.get('x-csrf-token') || req.query._csrf
+        if (!token || token !== req.csrfToken()) {
+            return res.status(403).send('Forbidden')
+        }
+        return appHandler.listUsersAPI(req, res, next)
+    })
 
     router.get('/admin/users', authHandler.isAuthenticated, validateOrigin, function(req, res){
         res.render('app/adminusers')
