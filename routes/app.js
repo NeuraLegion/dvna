@@ -78,8 +78,15 @@ module.exports = function () {
     })
 
     router.get('/admin', authHandler.isAuthenticated, validateOrigin, function (req, res) {
+        if (Object.keys(req.query || {}).length > 0) {
+            return res.status(400).send('Bad Request')
+        }
+        if (!req.session || !req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
         res.render('app/admin', {
-            admin: (req.user.role == 'admin')
+            admin: (req.user.role == 'admin'),
+            csrfToken: req.session.csrfFormToken
         })
     })
 
@@ -124,11 +131,26 @@ module.exports = function () {
         return next()
     }, appHandler.ping)
 
-    router.post('/products', authHandler.isAuthenticated, validateOrigin, appHandler.productSearch)
+    router.post('/products', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        return next()
+    }, appHandler.productSearch)
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, validateOrigin, appHandler.modifyProductSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        return next()
+    }, appHandler.modifyProductSubmit)
 
-    router.post('/useredit', authHandler.isAuthenticated, validateOrigin, appHandler.userEditSubmit)
+    router.post('/useredit', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        return next()
+    }, appHandler.userEditSubmit)
 
     router.post('/calc', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
         if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
