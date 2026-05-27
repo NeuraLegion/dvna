@@ -5,3 +5,4 @@ services:
       - 9090:9090
     environment:
       PORT: 9090
+      APP_PORT: 9090

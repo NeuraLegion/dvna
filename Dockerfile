@@ -10,6 +10,8 @@ RUN printf 'deb http://archive.debian.org/debian stretch main\ndeb http://archiv
   && apt-get update -o Acquire::Check-Valid-Until=false \
   && apt-get install -y --no-install-recommends \
     python \
+    make \
+    g++ \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
