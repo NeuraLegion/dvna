@@ -102,7 +102,16 @@ module.exports = function () {
     })
 
     router.get('/admin/users', authHandler.isAuthenticated, validateOrigin, function(req, res){
-        res.render('app/adminusers')
+        if (Object.keys(req.query || {}).length > 0) {
+            return res.status(400).send('Bad Request')
+        }
+        if (!req.session || !req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        res.render('app/adminusers', {
+            csrfToken: req.session.csrfFormToken,
+            messages: {}
+        })
     })
 
     router.get('/redirect', appHandler.redirect)
@@ -111,6 +120,9 @@ module.exports = function () {
         const origin = req.get('origin')
         const referer = req.get('referer')
         const allowedOrigin = req.protocol + '://' + req.get('host')
+        if (!origin && !referer) {
+            return res.status(403).send('Forbidden')
+        }
         if ((origin && origin !== allowedOrigin) || (referer && !referer.startsWith(allowedOrigin))) {
             return res.status(403).send('Forbidden')
         }

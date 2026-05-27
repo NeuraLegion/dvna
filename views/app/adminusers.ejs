@@ -65,6 +65,7 @@
             };
 
             xmlhttp.open("GET", "/app/admin/usersapi", true);
+            xmlhttp.setRequestHeader("x-csrf-token", "<%= csrfToken %>");
             xmlhttp.send();
         }
         loadUsers();
