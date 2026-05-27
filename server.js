@@ -45,14 +45,14 @@ app.use(function (req, res, next) {
 app.use(passport.initialize())
 app.use(passport.session())
 
-// CSRF protection: apply it to unsafe methods only, but keep authentication
-// flows working on GET pages that need to render before a token exists.
+// CSRF protection: enforce on unsafe methods, but allow safe GET pages to render
+// and generate a session token for forms and AJAX requests.
 var csrfProtection = csrf()
 app.use(function (req, res, next) {
-  if (req.method === 'GET' || req.method === 'HEAD') {
-    return next()
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return csrfProtection(req, res, next)
   }
-  return csrfProtection(req, res, next)
+  next()
 })
 app.use(function (req, res, next) {
   if (req.session) {
