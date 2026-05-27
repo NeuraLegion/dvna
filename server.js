@@ -47,12 +47,7 @@ app.use(passport.session())
 
 // CSRF protection
 var csrfProtection = csrf()
-app.use(function (req, res, next) {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    return next()
-  }
-  return csrfProtection(req, res, next)
-})
+app.use(csrfProtection)
 app.use(function (req, res, next) {
   if (req.session) {
     req.session.csrfFormToken = req.csrfToken()

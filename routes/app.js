@@ -28,7 +28,16 @@ module.exports = function () {
         res.render('app/bulkproducts', { legacy: false })
     })
 
-    router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
+    router.get('/products', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.session || !req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        const token = req.get('x-csrf-token') || req.query._csrf
+        if (!token || token !== req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        return appHandler.listProducts(req, res, next)
+    })
 
     router.get('/modifyproduct', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
         if (!req.csrfToken || req.method !== 'GET') {
