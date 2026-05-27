@@ -55,8 +55,8 @@ app.use(function (req, res, next) {
 })
 app.use(function (req, res, next) {
   if (req.session) {
-    if (!req.session.csrfFormToken) {
-      req.session.csrfFormToken = req.csrfToken ? req.csrfToken() : null
+    if (!req.session.csrfFormToken && req.csrfToken) {
+      req.session.csrfFormToken = req.csrfToken()
     }
     res.locals.csrfToken = req.session.csrfFormToken
   }
