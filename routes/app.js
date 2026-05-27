@@ -40,7 +40,7 @@ module.exports = function () {
         })
     })
 
-    router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
+    router.get('/admin/usersapi', authHandler.isAuthenticated, validateOrigin, appHandler.listUsersAPI)
 
     router.get('/admin/users', authHandler.isAuthenticated, validateOrigin, function(req, res){
         res.render('app/adminusers')

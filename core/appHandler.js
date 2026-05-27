@@ -214,7 +214,12 @@ module.exports.calc = function (req, res) {
 }
 
 module.exports.listUsersAPI = function (req, res) {
-	db.User.findAll({}).then(users => {
+	if (!req.user || req.user.role !== 'admin') {
+		return res.status(403).send('Forbidden')
+	}
+	db.User.findAll({
+		attributes: ['id', 'name', 'login']
+	}).then(users => {
 		res.status(200).json({
 			success: true,
 			users: users
