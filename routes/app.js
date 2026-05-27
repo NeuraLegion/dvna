@@ -14,9 +14,13 @@ module.exports = function () {
         })
     })
 
-    router.get('/ping', authHandler.isAuthenticated, function (req, res) {
+    router.get('/ping', authHandler.isAuthenticated, validateOrigin, function (req, res) {
+        if (Object.keys(req.query || {}).length > 0) {
+            return res.status(400).send('Bad Request')
+        }
         res.render('app/ping', {
-            output: null
+            output: null,
+            csrfToken: req.session.csrfFormToken
         })
     })
 
@@ -69,7 +73,12 @@ module.exports = function () {
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.post('/ping', authHandler.isAuthenticated, validateOrigin, appHandler.ping)
+    router.post('/ping', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        return next()
+    }, appHandler.ping)
 
     router.post('/products', authHandler.isAuthenticated, validateOrigin, appHandler.productSearch)
 
