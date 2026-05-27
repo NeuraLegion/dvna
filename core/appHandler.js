@@ -1,8 +1,8 @@
 var db = require('../models')
-var bCrypt = require('bcrypt')
+var bCrypt = require('bcryptjs')
 const exec = require('child_process').exec;
 var mathjs = require('mathjs')
-var libxmljs = require("libxmljs");
+var libxmljs = require("libxmljs2");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 

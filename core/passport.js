@@ -1,6 +1,6 @@
 var db = require('../models')
 var LocalStrategy = require('passport-local').Strategy
-var bCrypt = require('bcrypt')
+var bCrypt = require('bcryptjs')
 
 
 module.exports = function (passport) {
@@ -25,7 +25,8 @@ module.exports = function (passport) {
     })
 
     passport.use('login', new LocalStrategy({
-            passReqToCallback: true
+            passReqToCallback: true,
+            passwordField: 'pass'
         },
         function (req, username, password, done) {
             db.User.findOne({
