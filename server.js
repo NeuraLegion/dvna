@@ -27,6 +27,14 @@ app.use(session({
   cookie: { secure: false }
 }))
 
+// Block OPTIONS requests to avoid exposing supported methods
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return res.status(405).end()
+  }
+  next()
+})
+
 // Initialize Passport
 app.use(passport.initialize())
 app.use(passport.session())
