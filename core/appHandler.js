@@ -108,6 +108,14 @@ module.exports.modifyProductSubmit = function (req, res) {
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
+
+	const safeText = value => {
+		if (value === undefined || value === null) {
+			return ''
+		}
+		return String(value).replace(/[<>]/g, '')
+	}
+
 	db.Product.find({
 		where: {
 			'id': req.body.id
@@ -116,10 +124,10 @@ module.exports.modifyProductSubmit = function (req, res) {
 		if (!product) {
 			product = new db.Product()
 		}
-		product.code = req.body.code
-		product.name = req.body.name
-		product.description = req.body.description
-		product.tags = req.body.tags
+		product.code = safeText(req.body.code)
+		product.name = safeText(req.body.name)
+		product.description = safeText(req.body.description)
+		product.tags = safeText(req.body.tags)
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
