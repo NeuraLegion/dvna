@@ -30,7 +30,16 @@ module.exports = function () {
 
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
 
-    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
+    router.get('/modifyproduct', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.csrfToken || req.method !== 'GET') {
+            return res.status(403).send('Forbidden')
+        }
+        const token = req.get('x-csrf-token') || req.query._csrf
+        if (!token || token !== req.csrfToken()) {
+            return res.status(403).send('Forbidden')
+        }
+        return appHandler.modifyProduct(req, res, next)
+    })
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
