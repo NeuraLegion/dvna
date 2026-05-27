@@ -5,15 +5,15 @@ var md5 = require('md5')
 module.exports.isAuthenticated = function (req, res, next) {
 	if (req.isAuthenticated()) {
 		req.flash('authenticated', true)
-		return next();
+		return next()
 	}
-	res.redirect('/login');
+	res.redirect('/login')
 }
 
 module.exports.isNotAuthenticated = function (req, res, next) {
 	if (!req.isAuthenticated())
-		return next();
-	res.redirect('/learn');
+		return next()
+	res.redirect('/learn')
 }
 
 module.exports.forgotPw = function (req, res) {
@@ -49,7 +49,8 @@ module.exports.resetPw = function (req, res) {
 				if (req.query.token == md5(req.query.login)) {
 					res.render('resetpw', {
 						login: req.query.login,
-						token: req.query.token
+						token: req.query.token,
+						csrfToken: req.session && req.session.csrfFormToken
 					})
 				} else {
 					req.flash('danger', "Invalid reset token")
@@ -67,6 +68,9 @@ module.exports.resetPw = function (req, res) {
 }
 
 module.exports.resetPwSubmit = function (req, res) {
+	if (!req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
+		return res.status(403).send('Forbidden')
+	}
 	if (req.body.password && req.body.cpassword && req.body.login && req.body.token) {
 		if (req.body.password == req.body.cpassword) {
 			db.User.find({
@@ -94,7 +98,8 @@ module.exports.resetPwSubmit = function (req, res) {
 			req.flash('danger', "Passowords do not match")
 			res.render('resetpw', {
 				login: req.query.login,
-				token: req.query.token
+				token: req.query.token,
+				csrfToken: req.session && req.session.csrfFormToken
 			})
 		}
 

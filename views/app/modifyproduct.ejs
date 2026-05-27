@@ -28,13 +28,14 @@
     <form id="addEditProduct" name="addEditProduct" action="/app/modifyproduct" method="post">
         <fieldset>
 
-            <input type="hidden" name="id" value="<%= output.product.id %>" id="addEditProduct_product_id" />
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="id" value="<%= String(output.product.id || '') %>" id="addEditProduct_product_id" />
 
             <div class="form-group ">
                 <label class="  control-label" for="addEditProduct_product_name">Product Name </label>
                 <div class="  controls">
 
-                    <input type="text" name="name" value="<%= output.product.name %>" id="addEditProduct_product_name" class="form-control" placeholder="Enter product name" />
+                    <input type="text" name="name" value="<%= String(output.product.name || '') %>" id="addEditProduct_product_name" class="form-control" placeholder="Enter product name" />
                 </div>
             </div>
 
@@ -42,7 +43,7 @@
                 <label class="  control-label" for="addEditProduct_product_code">Product Code </label>
                 <div class="  controls">
 
-                    <input type="text" name="code" value="<%= output.product.code %>" id="addEditProduct_product_code" class="form-control" placeholder="Enter product code" />
+                    <input type="text" name="code" value="<%= String(output.product.code || '') %>" id="addEditProduct_product_code" class="form-control" placeholder="Enter product code" />
                 </div>
             </div>
 
@@ -50,14 +51,14 @@
                 <label class="  control-label" for="addEditProduct_product_tags">Product Tags </label>
                 <div class="  controls">
 
-                    <input type="text" name="tags" value="<%= output.product.tags %>" id="addEditProduct_product_tags" class="form-control" placeholder="Enter product tags eg. Tag1,Tag2,Tag3" />
+                    <input type="text" name="tags" value="<%= String(output.product.tags || '') %>" id="addEditProduct_product_tags" class="form-control" placeholder="Enter product tags eg. Tag1,Tag2,Tag3" />
                 </div>
             </div>
             
             <div class="form-group ">
                 <label class="  control-label" for="addEditProduct_product_description">Product Description </label>
                 <div class="  controls">
-                    <textarea name="description" cols="" rows="" id="addEditProduct_product_description" class="form-control"><%= output.product.description %></textarea>
+                    <textarea name="description" cols="" rows="" id="addEditProduct_product_description" class="form-control"><%= String(output.product.description || '') %></textarea>
                 </div>
             </div>
 

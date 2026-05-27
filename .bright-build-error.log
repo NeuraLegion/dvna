@@ -1,0 +1,11 @@
+docker compose --wait failed and port 9090 is not reachable. Original error: Process exited with code 1.
+
+First 30 lines:
+ERR:  Image dvna-app Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 496B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 696B done
+#2 WARN: LegacyKeyValueFormat: "LABEL key=valu

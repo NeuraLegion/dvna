@@ -8,7 +8,7 @@ module.exports = function (passport) {
 	})
 
 	router.get('/login', authHandler.isNotAuthenticated, function (req, res) {
-		res.render('login')
+		res.render('login', { csrfToken: req.session && req.session.csrfFormToken })
 	})
 
 	router.get('/learn/vulnerability/:vuln', authHandler.isAuthenticated, function (req, res) {
@@ -34,16 +34,16 @@ module.exports = function (passport) {
 	})
 
 	router.get('/register', authHandler.isNotAuthenticated, function (req, res) {
-		res.render('register')
+		res.render('register', { csrfToken: req.session && req.session.csrfFormToken })
 	})
 
 	router.get('/logout', function (req, res) {
 		req.logout();
-		res.redirect('/');
+		res.redirect('/')
 	})
 
 	router.get('/forgotpw', function (req, res) {
-		res.render('forgotpw')
+		res.render('forgotpw', { csrfToken: req.session && req.session.csrfFormToken })
 	})
 
 	router.get('/resetpw', authHandler.resetPw)

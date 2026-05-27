@@ -1,7 +1,36 @@
 var db = require('../models')
 var LocalStrategy = require('passport-local').Strategy
-var bCrypt = require('bcrypt')
+var crypto = require('crypto')
 
+var bCrypt
+try {
+    bCrypt = require('bcrypt')
+} catch (e) {
+    bCrypt = {
+        compareSync: function (password, storedHash) {
+            if (typeof storedHash !== 'string') {
+                return false
+            }
+            if (storedHash.indexOf('pbkdf2$') === 0) {
+                var parts = storedHash.split('$')
+                if (parts.length !== 3) {
+                    return false
+                }
+                var salt = parts[1]
+                var expected = parts[2]
+                var actual = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex')
+                return crypto.timingSafeEqual(Buffer.from(actual, 'utf8'), Buffer.from(expected, 'utf8'))
+            }
+            return false
+        },
+        genSaltSync: function () {
+            return crypto.randomBytes(16).toString('hex')
+        },
+        hashSync: function (password, salt) {
+            return 'pbkdf2$' + salt + '$' + crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex')
+        }
+    }
+}
 
 module.exports = function (passport) {
 

@@ -25,6 +25,7 @@
 
             <div class='page-body'>
                 <form id="resetPasswordExecute" name="resetPasswordExecute" action="/resetpw" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                     <fieldset>
 
                         <div class="form-group ">

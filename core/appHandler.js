@@ -7,8 +7,9 @@ var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	var query = "SELECT name,id FROM Users WHERE login=?";
 	db.sequelize.query(query, {
+		replacements: [req.body.login],
 		model: db.User
 	}).then(user => {
 		if (user.length) {
@@ -101,21 +102,47 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
+	if (req.method !== 'POST') {
+		return res.status(405).send('Method Not Allowed')
+	}
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
+
+	const normalizeProductText = (value, maxLength) => {
+		if (value === undefined || value === null) {
+			return ''
+		}
+		return String(value)
+			.replace(/[\u0000-\u001F\u007F]/g, ' ')
+			.trim()
+			.substring(0, maxLength)
+	}
+
+	const productId = Number.parseInt(req.body.id, 10)
+	if (!Number.isInteger(productId) || productId < 0) {
+		return res.status(400).send('Invalid product id')
+	}
+
+	const productInput = {
+		code: normalizeProductText(req.body.code, 100),
+		name: normalizeProductText(req.body.name, 100),
+		description: normalizeProductText(req.body.description, 1000),
+		tags: normalizeProductText(req.body.tags, 255)
+	}
+
 	db.Product.find({
 		where: {
-			'id': req.body.id
+			'id': productId
 		}
 	}).then(product => {
 		if (!product) {
 			product = new db.Product()
 		}
-		product.code = req.body.code
-		product.name = req.body.name
-		product.description = req.body.description
-		product.tags = req.body.tags
+		product.code = productInput.code
+		product.name = productInput.name
+		product.description = productInput.description
+		product.tags = productInput.tags
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
@@ -142,6 +169,9 @@ module.exports.userEdit = function (req, res) {
 }
 
 module.exports.userEditSubmit = function (req, res) {
+	if (String(req.body.id) !== String(req.user.id)) {
+		return res.status(403).send('Forbidden')
+	}
 	db.User.find({
 		where: {
 			'id': req.body.id
@@ -192,9 +222,12 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
+	if (req.method !== 'POST') {
+		return res.status(405).send('Method Not Allowed')
+	}
 	if (req.body.eqn) {
 		res.render('app/calc', {
-			output: mathjs.eval(req.body.eqn)
+			output: mathjs.evaluate(req.body.eqn)
 		})
 	} else {
 		res.render('app/calc', {
@@ -204,34 +237,36 @@ module.exports.calc = function (req, res) {
 }
 
 module.exports.listUsersAPI = function (req, res) {
-	db.User.findAll({}).then(users => {
+	if (!req.user || req.user.role !== 'admin') {
+		return res.status(403).send('Forbidden')
+	}
+	if (req.method !== 'POST') {
+		return res.status(405).send('Method Not Allowed')
+	}
+	db.User.findAll({
+		attributes: ['id', 'name'],
+		raw: true
+	}).then(users => {
+		const safeUsers = users.map(user => ({
+			id: user.id,
+			name: user.name
+		}))
 		res.status(200).json({
 			success: true,
-			users: users
+			users: safeUsers
 		})
 	})
 }
 
 module.exports.bulkProductsLegacy = function (req,res){
-	// TODO: Deprecate this soon
-	if(req.files.products){
-		var products = serialize.unserialize(req.files.products.data.toString('utf8'))
-		products.forEach( function (product) {
-			var newProduct = new db.Product()
-			newProduct.name = product.name
-			newProduct.code = product.code
-			newProduct.tags = product.tags
-			newProduct.description = product.description
-			newProduct.save()
-		})
-		res.redirect('/app/products')
-	}else{
-		res.render('app/bulkproducts',{messages:{danger:'Invalid file'},legacy:true})
-	}
+	return res.status(403).send('Forbidden')
 }
 
 module.exports.bulkProducts =  function(req, res) {
-	if (req.files.products && req.files.products.mimetype=='text/xml'){
+	if (req.method !== 'POST') {
+		return res.status(405).send('Method Not Allowed')
+	}
+	if (req.files && req.files.products && req.files.products.mimetype=='text/xml'){
 		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:true,noblanks:true})
 		products.root().childNodes().forEach( product => {
 			var newProduct = new db.Product()
