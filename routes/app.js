@@ -59,9 +59,9 @@ module.exports = function () {
 
     router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
 
-    router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts);
+    router.post('/bulkproducts', authHandler.isAuthenticated, appHandler.bulkProducts)
 
-    router.post('/bulkproductslegacy',authHandler.isAuthenticated, appHandler.bulkProductsLegacy);
+    router.post('/bulkproductslegacy', authHandler.isAuthenticated, appHandler.bulkProductsLegacy)
 
     return router
 }

@@ -2,6 +2,7 @@ var express = require('express')
 var bodyParser = require('body-parser')
 var passport = require('passport')
 var session = require('express-session')
+var csrf = require('csurf')
 var ejs = require('ejs')
 var morgan = require('morgan')
 const fileUpload = require('express-fileupload');
@@ -24,7 +25,7 @@ app.use(session({
   secret: 'keyboard cat',
   resave: true,
   saveUninitialized: true,
-  cookie: { secure: false }
+  cookie: { secure: false, sameSite: 'strict' }
 }))
 
 // Block OPTIONS requests to avoid exposing supported methods
@@ -38,6 +39,13 @@ app.use((req, res, next) => {
 // Initialize Passport
 app.use(passport.initialize())
 app.use(passport.session())
+
+// CSRF protection
+app.use(csrf())
+app.use(function (req, res, next) {
+  res.locals.csrfToken = req.csrfToken()
+  next()
+})
 
 // Initialize express-flash
 app.use(require('express-flash')());

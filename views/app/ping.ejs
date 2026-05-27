@@ -15,6 +15,7 @@
 
                 <div class='page-body'>
                 <form id="ping" name="ping" action="/app/ping" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                     <fieldset>
 
                         <div class="form-group ">
