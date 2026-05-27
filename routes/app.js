@@ -9,7 +9,8 @@ module.exports = function () {
 
     router.get('/usersearch', authHandler.isAuthenticated, function (req, res) {
         res.render('app/usersearch', {
-            output: null
+            output: null,
+            csrfToken: req.csrfToken()
         })
     })
 
@@ -57,7 +58,7 @@ module.exports = function () {
         next()
     }
 
-    router.post('/usersearch', authHandler.isAuthenticated, validateOrigin, appHandler.userSearch)
+    router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
     router.post('/ping', authHandler.isAuthenticated, validateOrigin, appHandler.ping)
 
