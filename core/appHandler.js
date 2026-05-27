@@ -195,9 +195,12 @@ module.exports.redirect = function (req, res) {
 }
 
 module.exports.calc = function (req, res) {
+	if (req.method !== 'POST') {
+		return res.status(405).send('Method Not Allowed')
+	}
 	if (req.body.eqn) {
 		res.render('app/calc', {
-			output: mathjs.eval(req.body.eqn)
+			output: mathjs.evaluate(req.body.eqn)
 		})
 	} else {
 		res.render('app/calc', {
