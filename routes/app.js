@@ -52,8 +52,14 @@ module.exports = function () {
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
-    router.get('/calc', authHandler.isAuthenticated, function (req, res) {
-        res.render('app/calc',{output:null})
+    router.get('/calc', authHandler.isAuthenticated, validateOrigin, function (req, res) {
+        if (Object.keys(req.query || {}).length > 0) {
+            return res.status(400).send('Bad Request')
+        }
+        res.render('app/calc', {
+            output: null,
+            csrfToken: req.session.csrfFormToken
+        })
     })
 
     router.get('/admin', authHandler.isAuthenticated, validateOrigin, function (req, res) {
@@ -104,7 +110,12 @@ module.exports = function () {
 
     router.post('/useredit', authHandler.isAuthenticated, validateOrigin, appHandler.userEditSubmit)
 
-    router.post('/calc', authHandler.isAuthenticated, validateOrigin, appHandler.calc)
+    router.post('/calc', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        if (!req.body || !req.body._csrf || !req.session || !req.session.csrfFormToken || req.body._csrf !== req.session.csrfFormToken) {
+            return res.status(403).send('Forbidden')
+        }
+        return next()
+    }, appHandler.calc)
 
     router.post('/bulkproducts', authHandler.isAuthenticated, validateOrigin, appHandler.bulkProducts)
 
