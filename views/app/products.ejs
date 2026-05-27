@@ -69,6 +69,8 @@
                         <form id="listProduct" name="listProduct" action="/app/products" method="post">
                             <fieldset>
 
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
                                 <div class="form-group ">
                                     <label class="  control-label" for="listProduct_searchQuery">Query </label>
                                     <div class="  controls">

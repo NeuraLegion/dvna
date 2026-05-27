@@ -26,6 +26,7 @@
             <form encType="multipart/form-data" method="post" action="<%= legacy ? '/app/bulkproductslegacy' : '/app/bulkproducts' %>">
                 <div class="input-group mb-3">
                     <div class="products-file">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                         <input type="file" name="products" class="file-input" id="inputfile" <% if(!legacy){ %> accept=".xml" <% } %>>
                         <br>
                         <input class="button" type="submit" name="submit" value="Upload">
