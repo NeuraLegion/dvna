@@ -50,7 +50,9 @@ var csrfProtection = csrf()
 app.use(csrfProtection)
 app.use(function (req, res, next) {
   if (req.session) {
-    req.session.csrfFormToken = req.csrfToken()
+    if (!req.session.csrfFormToken) {
+      req.session.csrfFormToken = req.csrfToken()
+    }
     res.locals.csrfToken = req.session.csrfFormToken
   }
   next()

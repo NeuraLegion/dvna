@@ -225,7 +225,7 @@ module.exports.listUsersAPI = function (req, res) {
 	if (!req.user || req.user.role !== 'admin') {
 		return res.status(403).send('Forbidden')
 	}
-	if (req.method !== 'GET') {
+	if (req.method !== 'POST') {
 		return res.status(405).send('Method Not Allowed')
 	}
 	db.User.findAll({

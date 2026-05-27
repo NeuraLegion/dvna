@@ -90,15 +90,16 @@ module.exports = function () {
         })
     })
 
-    router.get('/admin/usersapi', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
-        if (!req.csrfToken || req.method !== 'GET') {
-            return res.status(403).send('Forbidden')
-        }
-        const token = req.get('x-csrf-token') || req.query._csrf
-        if (!token || token !== req.csrfToken()) {
+    router.post('/admin/usersapi', authHandler.isAuthenticated, validateOrigin, function (req, res, next) {
+        const token = req.get('x-csrf-token') || (req.body && req.body._csrf)
+        if (!req.session || !req.session.csrfFormToken || !token || token !== req.session.csrfFormToken) {
             return res.status(403).send('Forbidden')
         }
         return appHandler.listUsersAPI(req, res, next)
+    })
+
+    router.get('/admin/usersapi', authHandler.isAuthenticated, function (req, res) {
+        return res.status(405).send('Method Not Allowed')
     })
 
     router.get('/admin/users', authHandler.isAuthenticated, validateOrigin, function(req, res){
