@@ -109,25 +109,40 @@ module.exports.modifyProductSubmit = function (req, res) {
 		req.body.id = 0
 	}
 
-	const safeText = value => {
+	const normalizeProductText = (value, maxLength) => {
 		if (value === undefined || value === null) {
 			return ''
 		}
-		return String(value).replace(/[<>]/g, '')
+		return String(value)
+			.replace(/[\u0000-\u001F\u007F]/g, ' ')
+			.trim()
+			.substring(0, maxLength)
+	}
+
+	const productId = Number.parseInt(req.body.id, 10)
+	if (!Number.isInteger(productId) || productId < 0) {
+		return res.status(400).send('Invalid product id')
+	}
+
+	const productInput = {
+		code: normalizeProductText(req.body.code, 100),
+		name: normalizeProductText(req.body.name, 100),
+		description: normalizeProductText(req.body.description, 1000),
+		tags: normalizeProductText(req.body.tags, 255)
 	}
 
 	db.Product.find({
 		where: {
-			'id': req.body.id
+			'id': productId
 		}
 	}).then(product => {
 		if (!product) {
 			product = new db.Product()
 		}
-		product.code = safeText(req.body.code)
-		product.name = safeText(req.body.name)
-		product.description = safeText(req.body.description)
-		product.tags = safeText(req.body.tags)
+		product.code = productInput.code
+		product.name = productInput.name
+		product.description = productInput.description
+		product.tags = productInput.tags
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
