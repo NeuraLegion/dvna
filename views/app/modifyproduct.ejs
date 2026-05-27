@@ -28,6 +28,7 @@
     <form id="addEditProduct" name="addEditProduct" action="/app/modifyproduct" method="post">
         <fieldset>
 
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="id" value="<%= output.product.id %>" id="addEditProduct_product_id" />
 
             <div class="form-group ">

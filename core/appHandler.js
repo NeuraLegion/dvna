@@ -101,6 +101,9 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
+	if (req.method !== 'POST') {
+		return res.status(405).send('Method Not Allowed')
+	}
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
