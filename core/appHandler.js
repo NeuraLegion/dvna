@@ -186,14 +186,14 @@ module.exports.userEditSubmit = function (req, res) {
 module.exports.redirect = function (req, res) {
 	if (req.query.url) {
 		var target = req.query.url.trim()
-		var isSafeInternalPath = /^\/(?!\/)[A-Za-z0-9\-._~\/?#[\]@!$&'()*+,;=%]*$/.test(target)
-		if (isSafeInternalPath) {
+		var isAllowedRedirectPath = /^\/(?!\/)[A-Za-z0-9\-._~\/?#[\]@!$&'()*+,;=%]*$/.test(target)
+		if (isAllowedRedirectPath) {
 			res.redirect(target)
 		} else {
-			res.status(400).send('invalid redirect url')
+			res.status(400).send('Invalid redirect: only internal paths are allowed')
 		}
 	} else {
-		res.send('invalid redirect url')
+		res.status(400).send('Invalid redirect: only internal paths are allowed')
 	}
 }
 

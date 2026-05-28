@@ -18,7 +18,7 @@ if (process.env.DATABASE_URL) {
 
 sequelize
   .authenticate()
-  .then(function (err) {
+  .then(function () {
     console.log('Connection has been established successfully.');
   })
   .catch(function (err) {
