@@ -184,7 +184,7 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (!req.query.url) {
+	if (typeof req.query.url !== 'string') {
 		return res.status(400).send('invalid redirect url')
 	}
 	const target = req.query.url.trim()
