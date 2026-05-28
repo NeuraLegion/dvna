@@ -235,13 +235,14 @@ module.exports.productsByCategory = function (req, res) {
 }
 
 module.exports.productsByCategorySearch = function (req, res) {
-	var category = req.body.category || ''
+	var category = String(req.body.category || '')
+	var escapedCategory = category.replace(/[\\%_]/g, '\\$&')
 	var allowedSortColumns = ['name', 'code', 'id']
 	var sortBy = allowedSortColumns.indexOf(req.body.sortby) >= 0 ? req.body.sortby : 'name'
 	db.Product.findAll({
 		where: {
 			tags: {
-				[Op.like]: '%' + category + '%'
+				[Op.like]: '%' + escapedCategory + '%'
 			}
 		},
 		order: [[sortBy, 'ASC']]
