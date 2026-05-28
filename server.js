@@ -20,8 +20,9 @@ app.use(fileUpload());
 // app.set('trust proxy', 1) 
 
 // Intialize Session
+var sessionSecret = process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex')
 app.use(session({
-  secret: 'keyboard cat',
+  secret: sessionSecret,
   resave: true,
   saveUninitialized: true,
   cookie: { secure: false }
