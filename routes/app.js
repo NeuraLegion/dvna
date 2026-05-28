@@ -2,6 +2,23 @@ var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
 
+// Simple in-memory rate limiter: max 10 requests per minute per IP
+var pingRequestCounts = {}
+function pingRateLimit(req, res, next) {
+    var ip = req.ip || (req.connection && req.connection.remoteAddress) || 'unknown'
+    var now = Date.now()
+    var windowMs = 60000 // 1 minute
+    if (!pingRequestCounts[ip] || pingRequestCounts[ip].resetAt < now) {
+        pingRequestCounts[ip] = { count: 1, resetAt: now + windowMs }
+    } else {
+        pingRequestCounts[ip].count++
+        if (pingRequestCounts[ip].count > 10) {
+            return res.status(429).send('Too many requests. Please try again later.')
+        }
+    }
+    next()
+}
+
 module.exports = function () {
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
@@ -49,7 +66,7 @@ module.exports = function () {
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
+    router.post('/ping', authHandler.isAuthenticated, pingRateLimit, appHandler.ping)
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 

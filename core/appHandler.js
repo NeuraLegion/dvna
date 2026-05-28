@@ -36,9 +36,9 @@ module.exports.userSearch = function (req, res) {
 
 module.exports.ping = function (req, res) {
 	var address = req.body.address
-	if (!address || !/^[a-zA-Z0-9.\-]+$/.test(address)) {
+	if (!address || !/^[a-zA-Z0-9.\-]+$/.test(address) || /\.{2,}/.test(address)) {
 		return res.render('app/ping', {
-			output: 'Invalid address. Only alphanumeric characters, dots and hyphens are allowed.'
+			output: 'Invalid address. Only alphanumeric characters, dots and hyphens are allowed (no consecutive dots).'
 		})
 	}
 	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
@@ -198,9 +198,9 @@ module.exports.redirect = function (req, res) {
 
 module.exports.calc = function (req, res) {
 	if (req.body.eqn) {
-		if (!/^[0-9+\-*/(). ]+$/.test(req.body.eqn)) {
+		if (req.body.eqn.length > 200 || !/^[0-9+\-*/(). ]+$/.test(req.body.eqn)) {
 			return res.render('app/calc', {
-				output: 'Invalid expression: only numbers and basic arithmetic operators are allowed'
+				output: 'Invalid expression: only numbers and basic arithmetic operators are allowed (max 200 chars)'
 			})
 		}
 		try {
@@ -236,10 +236,10 @@ module.exports.bulkProductsLegacy = function (req,res){
 			if (!Array.isArray(products)) throw new Error('Expected an array')
 			products.forEach( function (product) {
 				var newProduct = new db.Product()
-				newProduct.name = product.name
-				newProduct.code = product.code
-				newProduct.tags = product.tags
-				newProduct.description = product.description
+				newProduct.name = String(product.name || '')
+				newProduct.code = String(product.code || '')
+				newProduct.tags = String(product.tags || '')
+				newProduct.description = String(product.description || '')
 				newProduct.save()
 			})
 			res.redirect('/app/products')
