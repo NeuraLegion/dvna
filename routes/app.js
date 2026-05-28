@@ -46,6 +46,9 @@ module.exports = function () {
     })
 
     router.get('/redirect', appHandler.redirect)
+    router.options('/redirect', function (req, res) {
+        res.status(405).send('Method Not Allowed')
+    })
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
