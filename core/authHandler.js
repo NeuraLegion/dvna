@@ -5,6 +5,16 @@ var crypto = require('crypto')
 // In-memory token store: { token: { login, expiresAt } }
 var passwordResetTokens = {}
 
+// Periodically purge expired tokens to prevent unbounded memory growth
+setInterval(function () {
+	var now = Date.now()
+	Object.keys(passwordResetTokens).forEach(function (token) {
+		if (passwordResetTokens[token].expiresAt <= now) {
+			delete passwordResetTokens[token]
+		}
+	})
+}, 3600000) // run every hour
+
 module.exports.isAuthenticated = function (req, res, next) {
 	if (req.isAuthenticated()) {
 		req.flash('authenticated', true)
