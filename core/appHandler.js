@@ -188,9 +188,13 @@ module.exports.redirect = function (req, res) {
 		return res.status(400).send('invalid redirect url')
 	}
 	const target = req.query.url.trim()
-	// Allow only local redirects.
-	if (target.startsWith('/') && !target.startsWith('//')) {
-		return res.redirect(target)
+	const allowedRedirects = {
+		'/': '/',
+		'/learn': '/learn',
+		'/app/calc': '/app/calc'
+	}
+	if (allowedRedirects[target]) {
+		return res.redirect(allowedRedirects[target])
 	}
 	return res.status(400).send('invalid redirect url')
 }
