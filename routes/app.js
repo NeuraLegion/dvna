@@ -1,6 +1,19 @@
 var router = require('express').Router()
 var appHandler = require('../core/appHandler')
 var authHandler = require('../core/authHandler')
+var rateLimit = require('express-rate-limit')
+
+var pingLimiter = rateLimit({
+    windowMs: 60000, // 1 minute
+    max: 10,
+    message: 'Too many requests. Please try again later.'
+})
+
+var apiLimiter = rateLimit({
+    windowMs: 60000, // 1 minute
+    max: 30,
+    message: 'Too many requests. Please try again later.'
+})
 
 module.exports = function () {
     router.get('/', authHandler.isAuthenticated, function (req, res) {
@@ -39,23 +52,23 @@ module.exports = function () {
         })
     })
 
-    router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
+    router.get('/admin/usersapi', apiLimiter, authHandler.isAuthenticated, appHandler.listUsersAPI)
 
     router.get('/admin/users', authHandler.isAuthenticated, function(req, res){
         res.render('app/adminusers')
     })
 
-    router.get('/redirect', appHandler.redirect)
+    router.get('/redirect', apiLimiter, appHandler.redirect)
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.post('/ping', authHandler.isAuthenticated, appHandler.ping)
+    router.post('/ping', pingLimiter, authHandler.isAuthenticated, appHandler.ping)
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
     router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
 
-    router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
+    router.post('/useredit', apiLimiter, authHandler.isAuthenticated, appHandler.userEditSubmit)
 
     router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
 

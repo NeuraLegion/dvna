@@ -1,21 +1,24 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-const exec = require('child_process').exec;
+const { execFile } = require('child_process');
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
-var serialize = require("node-serialize")
+var urlModule = require('url')
 const Op = db.Sequelize.Op
 
+var MAX_EQUATION_LENGTH = 200
+var MAX_NESTED_PARENS = 10
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
-	db.sequelize.query(query, {
-		model: db.User
+	db.User.find({
+		where: { login: req.body.login },
+		attributes: ['name', 'id']
 	}).then(user => {
-		if (user.length) {
+		if (user) {
 			var output = {
 				user: {
-					name: user[0].name,
-					id: user[0].id
+					name: user.name,
+					id: user.id
 				}
 			}
 			res.render('app/usersearch', {
@@ -36,8 +39,17 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
-		output = stdout + stderr
+	var address = req.body.address
+	var startsWithAlphanumeric = address && /^[a-zA-Z0-9]/.test(address)
+	var hasOnlyValidChars = /^[a-zA-Z0-9.\-]+$/.test(address || '')
+	var hasNoConsecutiveDots = !/\.{2,}/.test(address || '')
+	if (!startsWithAlphanumeric || !hasOnlyValidChars || !hasNoConsecutiveDots) {
+		return res.render('app/ping', {
+			output: 'Invalid address. Only alphanumeric characters, dots and hyphens are allowed (must start with alphanumeric, no consecutive dots).'
+		})
+	}
+	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
+		var output = stdout + stderr
 		res.render('app/ping', {
 			output: output
 		})
@@ -144,7 +156,7 @@ module.exports.userEdit = function (req, res) {
 module.exports.userEditSubmit = function (req, res) {
 	db.User.find({
 		where: {
-			'id': req.body.id
+			'id': req.user.id
 		}		
 	}).then(user =>{
 		if(req.body.password.length>0){
@@ -184,18 +196,36 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
-		res.redirect(req.query.url)
-	} else {
-		res.send('invalid redirect url')
+	if (!req.query.url) {
+		return res.status(400).send('Only relative redirects are allowed')
 	}
+	var parsed = urlModule.parse(req.query.url)
+	if (parsed.host) {
+		return res.status(400).send('Only relative redirects are allowed')
+	}
+	var safePath = (parsed.pathname || '') + (parsed.search || '') + (parsed.hash || '')
+	res.redirect(safePath)
 }
 
 module.exports.calc = function (req, res) {
 	if (req.body.eqn) {
-		res.render('app/calc', {
-			output: mathjs.eval(req.body.eqn)
-		})
+		var isTooLong = req.body.eqn.length > MAX_EQUATION_LENGTH
+		var hasInvalidChars = !/^[0-9+\-*/(). ]+$/.test(req.body.eqn)
+		var hasTooManyParens = (req.body.eqn.match(/\(/g) || []).length > MAX_NESTED_PARENS
+		if (isTooLong || hasInvalidChars || hasTooManyParens) {
+			return res.render('app/calc', {
+				output: 'Invalid expression: only numbers and basic arithmetic operators are allowed (max 200 chars, max 10 nested parens)'
+			})
+		}
+		try {
+			res.render('app/calc', {
+				output: mathjs.eval(req.body.eqn)
+			})
+		} catch (e) {
+			res.render('app/calc', {
+				output: 'Invalid expression'
+			})
+		}
 	} else {
 		res.render('app/calc', {
 			output: 'Enter a valid math string like (3+3)*2'
@@ -204,7 +234,7 @@ module.exports.calc = function (req, res) {
 }
 
 module.exports.listUsersAPI = function (req, res) {
-	db.User.findAll({}).then(users => {
+	db.User.findAll({ attributes: ['id', 'name', 'login', 'email', 'role'] }).then(users => {
 		res.status(200).json({
 			success: true,
 			users: users
@@ -213,18 +243,23 @@ module.exports.listUsersAPI = function (req, res) {
 }
 
 module.exports.bulkProductsLegacy = function (req,res){
-	// TODO: Deprecate this soon
+	// Accepts JSON array of products instead of serialized data
 	if(req.files.products){
-		var products = serialize.unserialize(req.files.products.data.toString('utf8'))
-		products.forEach( function (product) {
-			var newProduct = new db.Product()
-			newProduct.name = product.name
-			newProduct.code = product.code
-			newProduct.tags = product.tags
-			newProduct.description = product.description
-			newProduct.save()
-		})
-		res.redirect('/app/products')
+		try {
+			var products = JSON.parse(req.files.products.data.toString('utf8'))
+			if (!Array.isArray(products)) throw new Error('Expected an array')
+			products.forEach( function (product) {
+				var newProduct = new db.Product()
+				newProduct.name = String(product.name || '')
+				newProduct.code = String(product.code || '')
+				newProduct.tags = String(product.tags || '')
+				newProduct.description = String(product.description || '')
+				newProduct.save()
+			})
+			res.redirect('/app/products')
+		} catch (e) {
+			res.render('app/bulkproducts',{messages:{danger:'Invalid file'},legacy:true})
+		}
 	}else{
 		res.render('app/bulkproducts',{messages:{danger:'Invalid file'},legacy:true})
 	}
@@ -232,7 +267,7 @@ module.exports.bulkProductsLegacy = function (req,res){
 
 module.exports.bulkProducts =  function(req, res) {
 	if (req.files.products && req.files.products.mimetype=='text/xml'){
-		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:true,noblanks:true})
+		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:false,noblanks:true})
 		products.root().childNodes().forEach( product => {
 			var newProduct = new db.Product()
 			newProduct.name = product.childNodes()[0].text()
