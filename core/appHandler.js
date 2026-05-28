@@ -36,9 +36,9 @@ module.exports.userSearch = function (req, res) {
 
 module.exports.ping = function (req, res) {
 	var address = req.body.address
-	if (!address || !/^[a-zA-Z0-9.\-]+$/.test(address) || /\.{2,}/.test(address)) {
+	if (!address || !/^[a-zA-Z0-9][a-zA-Z0-9.\-]*$/.test(address) || /\.{2,}/.test(address)) {
 		return res.render('app/ping', {
-			output: 'Invalid address. Only alphanumeric characters, dots and hyphens are allowed (no consecutive dots).'
+			output: 'Invalid address. Only alphanumeric characters, dots and hyphens are allowed (must start with alphanumeric, no consecutive dots).'
 		})
 	}
 	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
@@ -189,8 +189,9 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url && req.query.url.startsWith('/')) {
-		res.redirect(req.query.url)
+	var url = req.query.url
+	if (url && url.startsWith('/') && !url.startsWith('//')) {
+		res.redirect(url)
 	} else {
 		res.status(400).send('Only relative redirects are allowed')
 	}
@@ -198,9 +199,9 @@ module.exports.redirect = function (req, res) {
 
 module.exports.calc = function (req, res) {
 	if (req.body.eqn) {
-		if (req.body.eqn.length > 200 || !/^[0-9+\-*/(). ]+$/.test(req.body.eqn)) {
+		if (req.body.eqn.length > 200 || !/^[0-9+\-*/(). ]+$/.test(req.body.eqn) || (req.body.eqn.match(/\(/g) || []).length > 10) {
 			return res.render('app/calc', {
-				output: 'Invalid expression: only numbers and basic arithmetic operators are allowed (max 200 chars)'
+				output: 'Invalid expression: only numbers and basic arithmetic operators are allowed (max 200 chars, max 10 nested parens)'
 			})
 		}
 		try {

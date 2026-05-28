@@ -9,6 +9,12 @@ var pingLimiter = rateLimit({
     message: 'Too many requests. Please try again later.'
 })
 
+var apiLimiter = rateLimit({
+    windowMs: 60000, // 1 minute
+    max: 30,
+    message: 'Too many requests. Please try again later.'
+})
+
 module.exports = function () {
     router.get('/', authHandler.isAuthenticated, function (req, res) {
         res.redirect('/learn')
@@ -46,7 +52,7 @@ module.exports = function () {
         })
     })
 
-    router.get('/admin/usersapi', authHandler.isAuthenticated, appHandler.listUsersAPI)
+    router.get('/admin/usersapi', authHandler.isAuthenticated, apiLimiter, appHandler.listUsersAPI)
 
     router.get('/admin/users', authHandler.isAuthenticated, function(req, res){
         res.render('app/adminusers')
