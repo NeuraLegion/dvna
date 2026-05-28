@@ -11,6 +11,7 @@ if (process.env.DATABASE_URL) {
 } else {
   var sequelize = new Sequelize(config.database, config.username, config.password, {
     host: config.host,
+    port: config.port,
     dialect: config.dialect
   });
 }
@@ -22,14 +23,6 @@ sequelize
   })
   .catch(function (err) {
     console.log('Unable to connect to the database:', err);
-  })
-
-sequelize
-  .sync( /*{ force: true }*/ ) // Force To re-initialize tables on each run
-  .then(function (err) {
-    console.log('It worked!');
-  }, function (err) {
-    console.log('An error occurred while creating the table:', err);
   })
 
 var db = {};
@@ -49,6 +42,14 @@ Object.keys(db).forEach(function (modelName) {
     db[modelName].associate(db);
   }
 });
+
+sequelize
+  .sync( /*{ force: true }*/ ) // Force To re-initialize tables on each run
+  .then(function () {
+    console.log('Database tables synchronized.');
+  }, function (err) {
+    console.log('An error occurred while creating the table:', err);
+  })
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;

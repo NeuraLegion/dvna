@@ -185,7 +185,13 @@ module.exports.userEditSubmit = function (req, res) {
 
 module.exports.redirect = function (req, res) {
 	if (req.query.url) {
-		res.redirect(req.query.url)
+		var target = req.query.url.trim()
+		var isSafeInternalPath = /^\/(?!\/)[A-Za-z0-9\-._~\/?#[\]@!$&'()*+,;=%]*$/.test(target)
+		if (isSafeInternalPath) {
+			res.redirect(target)
+		} else {
+			res.status(400).send('invalid redirect url')
+		}
 	} else {
 		res.send('invalid redirect url')
 	}
