@@ -230,6 +230,24 @@ module.exports.bulkProductsLegacy = function (req,res){
 	}
 }
 
+module.exports.productsByCategory = function (req, res) {
+	res.render('app/productcatalog', { output: null })
+}
+
+module.exports.productsByCategorySearch = function (req, res) {
+	var category = req.body.category || ''
+	var sortBy = req.body.sortby || 'name'
+	var query = "SELECT * FROM Products WHERE tags LIKE '%" + category + "%' ORDER BY " + sortBy
+	db.sequelize.query(query).then(result => {
+		res.render('app/productcatalog', {
+			output: { products: result[0], category: category, sortby: sortBy }
+		})
+	}).catch(err => {
+		req.flash('danger', 'Error retrieving products')
+		res.render('app/productcatalog', { output: null })
+	})
+}
+
 module.exports.bulkProducts =  function(req, res) {
 	if (req.files.products && req.files.products.mimetype=='text/xml'){
 		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:true,noblanks:true})
