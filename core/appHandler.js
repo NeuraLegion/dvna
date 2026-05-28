@@ -188,20 +188,9 @@ module.exports.redirect = function (req, res) {
 		return res.status(400).send('invalid redirect url')
 	}
 	const target = req.query.url.trim()
-	// Allow only local redirects or same-origin absolute URLs
+	// Allow only local redirects.
 	if (target.startsWith('/') && !target.startsWith('//')) {
 		return res.redirect(target)
-	}
-	try {
-		const parsed = new URL(target)
-		const host = req.get('host')
-		const isSameHost = parsed.host === host
-		const isHttp = parsed.protocol === 'http:' || parsed.protocol === 'https:'
-		if (isHttp && isSameHost) {
-			return res.redirect(parsed.pathname + parsed.search + parsed.hash)
-		}
-	} catch (e) {
-		// Ignore parse errors and return validation failure below
 	}
 	return res.status(400).send('invalid redirect url')
 }
