@@ -3,6 +3,7 @@ var bCrypt = require('bcrypt')
 const { execFile } = require('child_process');
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
+var urlModule = require('url')
 const Op = db.Sequelize.Op
 
 module.exports.userSearch = function (req, res) {
@@ -36,7 +37,10 @@ module.exports.userSearch = function (req, res) {
 
 module.exports.ping = function (req, res) {
 	var address = req.body.address
-	if (!address || !/^[a-zA-Z0-9][a-zA-Z0-9.\-]*$/.test(address) || /\.{2,}/.test(address)) {
+	var startsWithAlphanumeric = address && /^[a-zA-Z0-9]/.test(address)
+	var hasOnlyValidChars = /^[a-zA-Z0-9.\-]+$/.test(address || '')
+	var hasConsecutiveDots = /\.{2,}/.test(address || '')
+	if (!startsWithAlphanumeric || !hasOnlyValidChars || hasConsecutiveDots) {
 		return res.render('app/ping', {
 			output: 'Invalid address. Only alphanumeric characters, dots and hyphens are allowed (must start with alphanumeric, no consecutive dots).'
 		})
@@ -189,17 +193,23 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	var url = req.query.url
-	if (url && url.startsWith('/') && !url.startsWith('//')) {
-		res.redirect(url)
-	} else {
-		res.status(400).send('Only relative redirects are allowed')
+	if (!req.query.url) {
+		return res.status(400).send('Only relative redirects are allowed')
 	}
+	var parsed = urlModule.parse(req.query.url)
+	if (parsed.host) {
+		return res.status(400).send('Only relative redirects are allowed')
+	}
+	var safePath = (parsed.pathname || '') + (parsed.search || '') + (parsed.hash || '')
+	res.redirect(safePath)
 }
 
 module.exports.calc = function (req, res) {
 	if (req.body.eqn) {
-		if (req.body.eqn.length > 200 || !/^[0-9+\-*/(). ]+$/.test(req.body.eqn) || (req.body.eqn.match(/\(/g) || []).length > 10) {
+		var isTooLong = req.body.eqn.length > 200
+		var hasInvalidChars = !/^[0-9+\-*/(). ]+$/.test(req.body.eqn)
+		var hasTooManyParens = (req.body.eqn.match(/\(/g) || []).length > 10
+		if (isTooLong || hasInvalidChars || hasTooManyParens) {
 			return res.render('app/calc', {
 				output: 'Invalid expression: only numbers and basic arithmetic operators are allowed (max 200 chars, max 10 nested parens)'
 			})

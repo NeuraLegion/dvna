@@ -2,6 +2,9 @@ var db = require('../models')
 var bCrypt = require('bcrypt')
 var crypto = require('crypto')
 
+var TOKEN_EXPIRY_MS = 3600000 // 1 hour
+var TOKEN_CLEANUP_INTERVAL_MS = 3600000 // 1 hour
+
 // In-memory token store: { token: { login, expiresAt } }
 var passwordResetTokens = {}
 
@@ -13,7 +16,7 @@ setInterval(function () {
 			delete passwordResetTokens[token]
 		}
 	})
-}, 3600000) // run every hour
+}, TOKEN_CLEANUP_INTERVAL_MS)
 
 module.exports.isAuthenticated = function (req, res, next) {
 	if (req.isAuthenticated()) {
@@ -40,7 +43,7 @@ module.exports.forgotPw = function (req, res) {
 				var token = crypto.randomBytes(32).toString('hex')
 				passwordResetTokens[token] = {
 					login: req.body.login,
-					expiresAt: Date.now() + 3600000 // 1 hour
+					expiresAt: Date.now() + TOKEN_EXPIRY_MS
 				}
 				// Send reset link via email happens here
 				req.flash('info', 'Check email for reset link')

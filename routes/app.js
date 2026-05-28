@@ -52,13 +52,13 @@ module.exports = function () {
         })
     })
 
-    router.get('/admin/usersapi', authHandler.isAuthenticated, apiLimiter, appHandler.listUsersAPI)
+    router.get('/admin/usersapi', apiLimiter, authHandler.isAuthenticated, appHandler.listUsersAPI)
 
     router.get('/admin/users', authHandler.isAuthenticated, function(req, res){
         res.render('app/adminusers')
     })
 
-    router.get('/redirect', appHandler.redirect)
+    router.get('/redirect', apiLimiter, appHandler.redirect)
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
@@ -68,7 +68,7 @@ module.exports = function () {
 
     router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
 
-    router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
+    router.post('/useredit', apiLimiter, authHandler.isAuthenticated, appHandler.userEditSubmit)
 
     router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
 
