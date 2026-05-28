@@ -62,7 +62,7 @@ module.exports = function () {
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
 
-    router.post('/ping', authHandler.isAuthenticated, pingLimiter, appHandler.ping)
+    router.post('/ping', pingLimiter, authHandler.isAuthenticated, appHandler.ping)
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 

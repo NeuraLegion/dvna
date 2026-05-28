@@ -6,6 +6,9 @@ var libxmljs = require("libxmljs");
 var urlModule = require('url')
 const Op = db.Sequelize.Op
 
+var MAX_EQUATION_LENGTH = 200
+var MAX_NESTED_PARENS = 10
+
 module.exports.userSearch = function (req, res) {
 	db.User.find({
 		where: { login: req.body.login },
@@ -39,8 +42,8 @@ module.exports.ping = function (req, res) {
 	var address = req.body.address
 	var startsWithAlphanumeric = address && /^[a-zA-Z0-9]/.test(address)
 	var hasOnlyValidChars = /^[a-zA-Z0-9.\-]+$/.test(address || '')
-	var hasConsecutiveDots = /\.{2,}/.test(address || '')
-	if (!startsWithAlphanumeric || !hasOnlyValidChars || hasConsecutiveDots) {
+	var hasNoConsecutiveDots = !/\.{2,}/.test(address || '')
+	if (!startsWithAlphanumeric || !hasOnlyValidChars || !hasNoConsecutiveDots) {
 		return res.render('app/ping', {
 			output: 'Invalid address. Only alphanumeric characters, dots and hyphens are allowed (must start with alphanumeric, no consecutive dots).'
 		})
@@ -206,9 +209,9 @@ module.exports.redirect = function (req, res) {
 
 module.exports.calc = function (req, res) {
 	if (req.body.eqn) {
-		var isTooLong = req.body.eqn.length > 200
+		var isTooLong = req.body.eqn.length > MAX_EQUATION_LENGTH
 		var hasInvalidChars = !/^[0-9+\-*/(). ]+$/.test(req.body.eqn)
-		var hasTooManyParens = (req.body.eqn.match(/\(/g) || []).length > 10
+		var hasTooManyParens = (req.body.eqn.match(/\(/g) || []).length > MAX_NESTED_PARENS
 		if (isTooLong || hasInvalidChars || hasTooManyParens) {
 			return res.render('app/calc', {
 				output: 'Invalid expression: only numbers and basic arithmetic operators are allowed (max 200 chars, max 10 nested parens)'
