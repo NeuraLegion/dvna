@@ -230,6 +230,32 @@ module.exports.bulkProductsLegacy = function (req,res){
 	}
 }
 
+module.exports.productsByCategory = function (req, res) {
+	res.render('app/productcatalog', { output: null })
+}
+
+module.exports.productsByCategorySearch = function (req, res) {
+	var category = String(req.body.category || '')
+	var escapedCategory = category.replace(/[\\%_]/g, '\\$&')
+	var allowedSortColumns = ['name', 'code', 'id']
+	var sortBy = allowedSortColumns.indexOf(req.body.sortby) >= 0 ? req.body.sortby : 'name'
+	db.Product.findAll({
+		where: {
+			tags: {
+				[Op.like]: '%' + escapedCategory + '%'
+			}
+		},
+		order: [[sortBy, 'ASC']]
+	}).then(products => {
+		res.render('app/productcatalog', {
+			output: { products: products, category: category, sortby: sortBy }
+		})
+	}).catch(err => {
+		req.flash('danger', 'Error retrieving products')
+		res.render('app/productcatalog', { output: null })
+	})
+}
+
 module.exports.bulkProducts =  function(req, res) {
 	if (req.files.products && req.files.products.mimetype=='text/xml'){
 		var products = libxmljs.parseXmlString(req.files.products.data.toString('utf8'), {noent:true,noblanks:true})

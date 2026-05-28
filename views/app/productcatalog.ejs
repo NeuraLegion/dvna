@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../common/head %>
+</head>
+<body>
+    <% include ../common/navigation %>
+    <div class='container' style='min-height: 450px'><div class='row'><div class='col-md-12'>
+
+        <div class='page-header'>
+            <h2><i class='fa fa-tags'></i> Product Catalog</h2>
+        </div>
+
+        <% if (messages.success) { %>
+            <div class="alert alert-success"><%=messages.success%></div>
+        <% } else if (messages.danger) { %>
+            <div class="alert alert-danger"><%= messages.danger %></div>
+        <% } else if (messages.warning) {%>
+            <div class="alert alert-warning"><%= messages.warning %></div>
+        <% } %>
+
+        <div class='row'>
+            <div class='col-md-4'>
+                <h4>Filter Products</h4>
+                <form id="productCatalog" name="productCatalog" action="/app/productcatalog" method="post">
+                    <fieldset>
+                        <div class="form-group">
+                            <label class="control-label" for="productCatalog_category">Category / Tag</label>
+                            <input type="text" name="category" value="<%= (output && output.category) ? output.category : '' %>" id="productCatalog_category" class="form-control" placeholder="e.g. electronics, clothing" />
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label" for="productCatalog_sortby">Sort By</label>
+                            <select name="sortby" id="productCatalog_sortby" class="form-control">
+                                <option value="name" <%= (output && output.sortby == 'name') ? 'selected' : '' %>>Name</option>
+                                <option value="code" <%= (output && output.sortby == 'code') ? 'selected' : '' %>>Product Code</option>
+                                <option value="id" <%= (output && output.sortby == 'id') ? 'selected' : '' %>>Date Added</option>
+                            </select>
+                        </div>
+                        <input type="submit" value="Browse" id="productCatalog_submit" class="btn btn-primary" />
+                    </fieldset>
+                </form>
+            </div>
+            <div class='col-md-8'>
+                <% if (output && output.products) { %>
+                <h4>
+                    Results
+                    <% if (output.category) { %>
+                        <small>for category: <strong><%= output.category %></strong></small>
+                    <% } %>
+                </h4>
+                <% if (output.products.length === 0) { %>
+                    <p class="text-muted">No products found for this category.</p>
+                <% } else { %>
+                <table class='table table-striped'>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th>Tags</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% for (var i = 0; i < output.products.length; i++) { %>
+                        <tr>
+                            <td><%= output.products[i].id %></td>
+                            <td><%= output.products[i].name %></td>
+                            <td><%= output.products[i].code %></td>
+                            <td><%= output.products[i].tags %></td>
+                            <td><%= output.products[i].description %></td>
+                        </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+                <% } %>
+                <% } %>
+            </div>
+        </div>
+
+    </div></div></div>
+    <% include ../common/footer %>
+</body>
+</html>

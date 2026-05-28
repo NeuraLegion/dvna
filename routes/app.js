@@ -45,6 +45,8 @@ module.exports = function () {
         res.render('app/adminusers')
     })
 
+    router.get('/productcatalog', authHandler.isAuthenticated, appHandler.productsByCategory)
+
     router.get('/redirect', appHandler.redirect)
 
     router.post('/usersearch', authHandler.isAuthenticated, appHandler.userSearch)
@@ -58,6 +60,8 @@ module.exports = function () {
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
     router.post('/calc', authHandler.isAuthenticated, appHandler.calc)
+
+    router.post('/productcatalog', authHandler.isAuthenticated, appHandler.productsByCategorySearch)
 
     router.post('/bulkproducts',authHandler.isAuthenticated, appHandler.bulkProducts);
 
