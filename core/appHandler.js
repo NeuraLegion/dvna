@@ -236,11 +236,18 @@ module.exports.productsByCategory = function (req, res) {
 
 module.exports.productsByCategorySearch = function (req, res) {
 	var category = req.body.category || ''
-	var sortBy = req.body.sortby || 'name'
-	var query = "SELECT * FROM Products WHERE tags LIKE '%" + category + "%' ORDER BY " + sortBy
-	db.sequelize.query(query).then(result => {
+	var allowedSortColumns = ['name', 'code', 'id']
+	var sortBy = allowedSortColumns.indexOf(req.body.sortby) >= 0 ? req.body.sortby : 'name'
+	db.Product.findAll({
+		where: {
+			tags: {
+				[Op.like]: '%' + category + '%'
+			}
+		},
+		order: [[sortBy, 'ASC']]
+	}).then(products => {
 		res.render('app/productcatalog', {
-			output: { products: result[0], category: category, sortby: sortBy }
+			output: { products: products, category: category, sortby: sortBy }
 		})
 	}).catch(err => {
 		req.flash('danger', 'Error retrieving products')
