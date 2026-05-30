@@ -185,7 +185,13 @@ module.exports.userEditSubmit = function (req, res) {
 
 module.exports.redirect = function (req, res) {
 	if (req.query.url) {
-		res.redirect(req.query.url)
+		try {
+			var candidate = new URL(req.query.url, 'http://127.0.0.1')
+			if (candidate.origin === 'http://127.0.0.1') {
+				return res.redirect(candidate.pathname + candidate.search + candidate.hash)
+			}
+		} catch (e) {}
+		res.status(400).send('invalid redirect url')
 	} else {
 		res.send('invalid redirect url')
 	}

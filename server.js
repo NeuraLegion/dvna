@@ -15,6 +15,12 @@ app.set('view engine','ejs')
 app.use(morgan('tiny'))
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(fileUpload());
+app.use(function (req, res, next) {
+  if (req.method === 'OPTIONS') {
+    return res.status(405).send('Method Not Allowed')
+  }
+  next()
+})
 
 // Enable for Reverse proxy support
 // app.set('trust proxy', 1) 
