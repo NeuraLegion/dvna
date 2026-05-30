@@ -188,7 +188,7 @@ module.exports.redirect = function (req, res) {
 	if (req.query.url) {
 		try {
 			var redirectUrl = String(req.query.url)
-			if (redirectUrl.indexOf('/') === 0 && redirectUrl.indexOf('//') !== 0) {
+			if (/^\/(?![\\/])/.test(redirectUrl)) {
 				var candidate = new URL(redirectUrl, 'http://localhost')
 				return res.redirect(candidate.pathname + candidate.search + candidate.hash)
 			}
