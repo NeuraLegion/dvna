@@ -196,7 +196,7 @@ module.exports.redirect = function (req, res) {
 		}
 		res.status(400).send('invalid redirect url')
 	} else {
-		res.send('invalid redirect url')
+		res.status(400).send('invalid redirect url')
 	}
 }
 
