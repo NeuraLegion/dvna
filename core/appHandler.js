@@ -184,19 +184,20 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
+	var invalidRedirectMessage = 'invalid redirect url'
 	if (req.query.url) {
 		try {
-			var baseOrigin = req.protocol + '://' + req.get('host')
-			var candidate = new URL(req.query.url, baseOrigin)
-			if (candidate.origin === baseOrigin) {
+			var redirectUrl = String(req.query.url)
+			if (redirectUrl.indexOf('/') === 0 && redirectUrl.indexOf('//') !== 0) {
+				var candidate = new URL(redirectUrl, 'http://localhost')
 				return res.redirect(candidate.pathname + candidate.search + candidate.hash)
 			}
 		} catch (e) {
 			console.error('Invalid redirect URL:', e.message)
 		}
-		res.status(400).send('invalid redirect url')
+		res.status(400).send(invalidRedirectMessage)
 	} else {
-		res.status(400).send('invalid redirect url')
+		res.status(400).send(invalidRedirectMessage)
 	}
 }
 

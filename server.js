@@ -16,7 +16,8 @@ app.use(morgan('tiny'))
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(fileUpload());
 app.use(function (req, res, next) {
-  if (req.method === 'OPTIONS') {
+  var isCorsPreflight = req.get('origin') && req.get('access-control-request-method')
+  if (req.method === 'OPTIONS' && !isCorsPreflight) {
     return res.status(405).send('Method Not Allowed')
   }
   next()
