@@ -1,4 +1,5 @@
 #! /bin/bash
 
+rm -rf node_modules
 npm install
-nodemon
+npm start

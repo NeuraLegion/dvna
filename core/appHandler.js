@@ -1,15 +1,21 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-const exec = require('child_process').exec;
+const execFile = require('child_process').execFile;
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function isSafePingTarget(value) {
+	return /^[a-zA-Z0-9.-]+$/.test(value || '')
+}
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
-	db.sequelize.query(query, {
-		model: db.User
+	db.User.findAll({
+		attributes: ['name', 'id'],
+		where: {
+			login: req.body.login
+		}
 	}).then(user => {
 		if (user.length) {
 			var output = {
@@ -36,7 +42,13 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
+	if (!isSafePingTarget(req.body.address)) {
+		req.flash('warning', 'Enter a valid IP address or hostname')
+		return res.render('app/ping', {
+			output: null
+		})
+	}
+	execFile('ping', ['-c', '2', req.body.address], function (err, stdout, stderr) {
 		output = stdout + stderr
 		res.render('app/ping', {
 			output: output

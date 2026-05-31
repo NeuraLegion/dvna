@@ -1,0 +1,12 @@
+2026-05-31T13:14:49.261778Z 0 [System] [MY-013169] [Server] /usr/sbin/mysqld (mysqld 8.0.45-0ubuntu0.24.04.1) initializing of server in progress as process 11376
+2026-05-31T13:14:49.557794Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2026-05-31T13:14:49.756205Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2026-05-31T13:14:50.988126Z 5 [Warning] [MY-010453] [Server] root@localhost is created with an empty password ! Please consider switching off the --initialize-insecure option.
+2026-05-31T13:14:58.369181Z 0 [System] [MY-010116] [Server] /usr/sbin/mysqld (mysqld 8.0.45-0ubuntu0.24.04.1) starting as process 11456
+2026-05-31T13:14:58.410824Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2026-05-31T13:14:58.454528Z 1 [ERROR] [MY-013039] [InnoDB] Can't create UNDO tablespace innodb_undo_001  since './undo_001' already exists.
+2026-05-31T13:14:58.454573Z 1 [ERROR] [MY-012930] [InnoDB] Plugin initialization aborted with error Generic error.
+2026-05-31T13:14:58.924040Z 1 [ERROR] [MY-010334] [Server] Failed to initialize DD Storage Engine
+2026-05-31T13:14:58.924205Z 0 [ERROR] [MY-010020] [Server] Data Dictionary initialization failed.
+2026-05-31T13:14:58.924222Z 0 [ERROR] [MY-010119] [Server] Aborting
+2026-05-31T13:14:58.924763Z 0 [System] [MY-010910] [Server] /usr/sbin/mysqld: Shutdown complete (mysqld 8.0.45-0ubuntu0.24.04.1)  (Ubuntu).
