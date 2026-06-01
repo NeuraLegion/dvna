@@ -1,6 +1,6 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
-const exec = require('child_process').exec;
+const { execFile } = require('child_process');
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
@@ -36,11 +36,16 @@ module.exports.userSearch = function (req, res) {
 }
 
 module.exports.ping = function (req, res) {
-	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
+	const address = (req.body.address || '').trim()
+	const safeHostRegex = /^(?=.{1,255}$)([a-zA-Z0-9-]{1,63}\.)*[a-zA-Z0-9-]{1,63}$/
+	const safeIpRegex = /^(?:\d{1,3}\.){3}\d{1,3}$/
+	if (!safeHostRegex.test(address) && !safeIpRegex.test(address)) {
+		req.flash('danger', 'Invalid target address')
+		return res.render('app/ping', { output: null })
+	}
+	execFile('ping', ['-c', '2', address], function (err, stdout, stderr) {
 		output = stdout + stderr
-		res.render('app/ping', {
-			output: output
-		})
+		res.render('app/ping', { output: output })
 	})
 }
 
@@ -184,8 +189,9 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
-		res.redirect(req.query.url)
+	const url = req.query.url
+	if (url && /^\/[a-zA-Z0-9/_-]*$/.test(url)) {
+		res.redirect(url)
 	} else {
 		res.send('invalid redirect url')
 	}
