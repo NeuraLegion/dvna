@@ -184,11 +184,14 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
-		res.redirect(req.query.url)
-	} else {
-		res.send('invalid redirect url')
+	const target = req.query.url
+	const allowedPaths = ['/learn', '/login', '/app', '/app/products']
+
+	if (!target || typeof target !== 'string' || !allowedPaths.includes(target)) {
+		return res.status(400).send('invalid redirect url')
 	}
+
+	return res.redirect(target)
 }
 
 module.exports.calc = function (req, res) {
@@ -204,7 +207,9 @@ module.exports.calc = function (req, res) {
 }
 
 module.exports.listUsersAPI = function (req, res) {
-	db.User.findAll({}).then(users => {
+	db.User.findAll({
+		attributes: ['id', 'name', 'email']
+	}).then(users => {
 		res.status(200).json({
 			success: true,
 			users: users
