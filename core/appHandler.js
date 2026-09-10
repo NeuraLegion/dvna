@@ -1,14 +1,110 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
+var crypto = require('crypto')
 const exec = require('child_process').exec;
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function normalizeProductSearchTerm(name) {
+	return String(name || '')
+		.trim()
+		.replace(/[\u0000-\u001f\u007f]/g, '')
+		.replace(/[<>]/g, '')
+		.slice(0, 100)
+}
+
+function setProductsPageSecurityHeaders(res) {
+	res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; font-src 'self' https://maxcdn.bootstrapcdn.com data:; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
+}
+
+function normalizeProductId(value) {
+	var id = parseInt(value, 10)
+
+	if (!Number.isInteger(id) || id < 1) {
+		return 0
+	}
+
+	return id
+}
+
+function sanitizeProductText(value, maxLength) {
+	return String(value == null ? '' : value)
+		.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
+		.replace(/<\/?style\b[^>]*>/gi, '')
+		.replace(/[<>{}]/g, '')
+		.slice(0, maxLength)
+}
+
+function sanitizeProductInput(product) {
+	product = product || {}
+
+	return {
+		id: normalizeProductId(product.id),
+		name: sanitizeProductText(product.name, 255),
+		code: sanitizeProductText(product.code, 255).replace(/[^a-zA-Z0-9._\- ]/g, ''),
+		description: sanitizeProductText(product.description, 65535),
+		tags: sanitizeProductText(product.tags, 255).replace(/[^a-zA-Z0-9,._\- ]/g, '')
+	}
+}
+
+function generateCsrfToken() {
+	return crypto.randomBytes(32).toString('hex')
+}
+
+function getSessionCsrfToken(req) {
+	if (!req.session.csrfToken) {
+		req.session.csrfToken = generateCsrfToken()
+	}
+
+	return req.session.csrfToken
+}
+
+function tokensMatch(expectedToken, providedToken) {
+	if (typeof expectedToken !== 'string' || typeof providedToken !== 'string') {
+		return false
+	}
+
+	var expectedBuffer = Buffer.from(expectedToken)
+	var providedBuffer = Buffer.from(providedToken)
+
+	if (expectedBuffer.length !== providedBuffer.length) {
+		return false
+	}
+
+	return crypto.timingSafeEqual(expectedBuffer, providedBuffer)
+}
+
+module.exports.modifyProductCsrfProtection = function (req, res, next) {
+	var csrfToken = getSessionCsrfToken(req)
+	res.locals.csrfToken = csrfToken
+
+	if (req.method !== 'POST') {
+		return next()
+	}
+
+	if (!tokensMatch(csrfToken, req.body._csrf)) {
+		req.flash('danger', 'Invalid request')
+		setProductsPageSecurityHeaders(res)
+		return res.status(403).render('app/modifyproduct', {
+			output: {
+				product: sanitizeProductInput(req.body)
+			},
+			csrfToken: csrfToken
+		})
+	}
+
+	return next()
+}
+
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	var login = String(req.body.login || '')
+	var query = 'SELECT name,id FROM Users WHERE login = :login'
 	db.sequelize.query(query, {
+		replacements: {
+			login: login
+		},
 		model: db.User
 	}).then(user => {
 		if (user.length) {
@@ -46,6 +142,7 @@ module.exports.ping = function (req, res) {
 
 module.exports.listProducts = function (req, res) {
 	db.Product.findAll().then(products => {
+		setProductsPageSecurityHeaders(res)
 		output = {
 			products: products
 		}
@@ -56,16 +153,18 @@ module.exports.listProducts = function (req, res) {
 }
 
 module.exports.productSearch = function (req, res) {
+	const searchTerm = normalizeProductSearchTerm(req.body.name)
 	db.Product.findAll({
 		where: {
 			name: {
-				[Op.like]: '%' + req.body.name + '%'
+				[Op.like]: '%' + searchTerm + '%'
 			}
 		}
 	}).then(products => {
+		setProductsPageSecurityHeaders(res)
 		output = {
 			products: products,
-			searchTerm: req.body.name
+			searchTerm: searchTerm
 		}
 		res.render('app/products', {
 			output: output
@@ -74,25 +173,29 @@ module.exports.productSearch = function (req, res) {
 }
 
 module.exports.modifyProduct = function (req, res) {
-	if (!req.query.id || req.query.id == '') {
+	var productId = normalizeProductId(req.query.id)
+
+	if (!productId) {
 		output = {
-			product: {}
+			product: sanitizeProductInput({})
 		}
+		setProductsPageSecurityHeaders(res)
 		res.render('app/modifyproduct', {
 			output: output
 		})
 	} else {
 		db.Product.find({
 			where: {
-				'id': req.query.id
+				'id': productId
 			}
 		}).then(product => {
 			if (!product) {
 				product = {}
 			}
 			output = {
-				product: product
+				product: sanitizeProductInput(product)
 			}
+			setProductsPageSecurityHeaders(res)
 			res.render('app/modifyproduct', {
 				output: output
 			})
@@ -101,21 +204,19 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
-	if (!req.body.id || req.body.id == '') {
-		req.body.id = 0
-	}
+	var sanitizedProduct = sanitizeProductInput(req.body)
 	db.Product.find({
 		where: {
-			'id': req.body.id
+			'id': sanitizedProduct.id
 		}
 	}).then(product => {
 		if (!product) {
 			product = new db.Product()
 		}
-		product.code = req.body.code
-		product.name = req.body.name
-		product.description = req.body.description
-		product.tags = req.body.tags
+		product.code = sanitizedProduct.code
+		product.name = sanitizedProduct.name
+		product.description = sanitizedProduct.description
+		product.tags = sanitizedProduct.tags
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
@@ -123,9 +224,10 @@ module.exports.modifyProductSubmit = function (req, res) {
 			}
 		}).catch(err => {
 			output = {
-				product: product
+				product: sanitizeProductInput(product)
 			}
 			req.flash('danger',err)
+			setProductsPageSecurityHeaders(res)
 			res.render('app/modifyproduct', {
 				output: output
 			})
@@ -184,9 +286,24 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
-		res.redirect(req.query.url)
-	} else {
+	const redirectUrl = typeof req.query.url === 'string' ? req.query.url.trim() : ''
+
+	if (!redirectUrl) {
+		res.send('invalid redirect url')
+		return
+	}
+
+	try {
+		const baseUrl = new URL(req.protocol + '://' + req.get('host'))
+		const targetUrl = new URL(redirectUrl, baseUrl)
+
+		if (!redirectUrl.startsWith('/') || redirectUrl.startsWith('//') || targetUrl.origin !== baseUrl.origin) {
+			res.send('invalid redirect url')
+			return
+		}
+
+		res.redirect(targetUrl.pathname + targetUrl.search + targetUrl.hash)
+	} catch (err) {
 		res.send('invalid redirect url')
 	}
 }

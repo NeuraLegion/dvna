@@ -25,7 +25,7 @@ module.exports = function () {
 
     router.get('/products', authHandler.isAuthenticated, appHandler.listProducts)
 
-    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProduct)
+    router.get('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductCsrfProtection, appHandler.modifyProduct)
 
     router.get('/useredit', authHandler.isAuthenticated, appHandler.userEdit)
 
@@ -53,7 +53,7 @@ module.exports = function () {
 
     router.post('/products', authHandler.isAuthenticated, appHandler.productSearch)
 
-    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductSubmit)
+    router.post('/modifyproduct', authHandler.isAuthenticated, appHandler.modifyProductCsrfProtection, appHandler.modifyProductSubmit)
 
     router.post('/useredit', authHandler.isAuthenticated, appHandler.userEditSubmit)
 
