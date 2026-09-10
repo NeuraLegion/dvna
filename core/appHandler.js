@@ -19,6 +19,36 @@ function setProductsPageSecurityHeaders(res) {
 	res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; font-src 'self' https://maxcdn.bootstrapcdn.com data:; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
 }
 
+function normalizeProductId(value) {
+	var id = parseInt(value, 10)
+
+	if (!Number.isInteger(id) || id < 1) {
+		return 0
+	}
+
+	return id
+}
+
+function sanitizeProductText(value, maxLength) {
+	return String(value == null ? '' : value)
+		.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
+		.replace(/<\/?style\b[^>]*>/gi, '')
+		.replace(/[<>{}]/g, '')
+		.slice(0, maxLength)
+}
+
+function sanitizeProductInput(product) {
+	product = product || {}
+
+	return {
+		id: normalizeProductId(product.id),
+		name: sanitizeProductText(product.name, 255),
+		code: sanitizeProductText(product.code, 255).replace(/[^a-zA-Z0-9._\- ]/g, ''),
+		description: sanitizeProductText(product.description, 65535),
+		tags: sanitizeProductText(product.tags, 255).replace(/[^a-zA-Z0-9,._\- ]/g, '')
+	}
+}
+
 function generateCsrfToken() {
 	return crypto.randomBytes(32).toString('hex')
 }
@@ -56,9 +86,10 @@ module.exports.modifyProductCsrfProtection = function (req, res, next) {
 
 	if (!tokensMatch(csrfToken, req.body._csrf)) {
 		req.flash('danger', 'Invalid request')
+		setProductsPageSecurityHeaders(res)
 		return res.status(403).render('app/modifyproduct', {
 			output: {
-				product: req.body || {}
+				product: sanitizeProductInput(req.body)
 			},
 			csrfToken: csrfToken
 		})
@@ -142,25 +173,29 @@ module.exports.productSearch = function (req, res) {
 }
 
 module.exports.modifyProduct = function (req, res) {
-	if (!req.query.id || req.query.id == '') {
+	var productId = normalizeProductId(req.query.id)
+
+	if (!productId) {
 		output = {
-			product: {}
+			product: sanitizeProductInput({})
 		}
+		setProductsPageSecurityHeaders(res)
 		res.render('app/modifyproduct', {
 			output: output
 		})
 	} else {
 		db.Product.find({
 			where: {
-				'id': req.query.id
+				'id': productId
 			}
 		}).then(product => {
 			if (!product) {
 				product = {}
 			}
 			output = {
-				product: product
+				product: sanitizeProductInput(product)
 			}
+			setProductsPageSecurityHeaders(res)
 			res.render('app/modifyproduct', {
 				output: output
 			})
@@ -169,21 +204,19 @@ module.exports.modifyProduct = function (req, res) {
 }
 
 module.exports.modifyProductSubmit = function (req, res) {
-	if (!req.body.id || req.body.id == '') {
-		req.body.id = 0
-	}
+	var sanitizedProduct = sanitizeProductInput(req.body)
 	db.Product.find({
 		where: {
-			'id': req.body.id
+			'id': sanitizedProduct.id
 		}
 	}).then(product => {
 		if (!product) {
 			product = new db.Product()
 		}
-		product.code = req.body.code
-		product.name = req.body.name
-		product.description = req.body.description
-		product.tags = req.body.tags
+		product.code = sanitizedProduct.code
+		product.name = sanitizedProduct.name
+		product.description = sanitizedProduct.description
+		product.tags = sanitizedProduct.tags
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
@@ -191,9 +224,10 @@ module.exports.modifyProductSubmit = function (req, res) {
 			}
 		}).catch(err => {
 			output = {
-				product: product
+				product: sanitizeProductInput(product)
 			}
 			req.flash('danger',err)
+			setProductsPageSecurityHeaders(res)
 			res.render('app/modifyproduct', {
 				output: output
 			})
