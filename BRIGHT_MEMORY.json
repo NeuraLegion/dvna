@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-10T17:53:37.362Z",
+  "instructionHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "startup": {
+    "command": "docker compose up -d --build",
+    "port": 9090,
+    "healthCheckPath": "/login",
+    "context": "Started the repo's Express app with MySQL via docker compose. Attempt 1 used the existing dev setup and failed because Dockerfile-dev installed a current nodemon version that is incompatible with Node 8 (SyntaxError in minimatch). I fixed the compose app service to build from the repo's production Dockerfile instead of Dockerfile-dev and removed the source bind mount so the image's installed dependencies are used. After restart, the app connected to MySQL, created tables through Sequelize, and served HTTP 200 on /login (root / redirects 302 to /login)."
+  },
+  "auth": {
+    "authObjectId": "gK9kB2iETZSLmbVqpnPvR1",
+    "registration": {
+      "baseUrl": "http://localhost:9090",
+      "endpoint": "/register",
+      "method": "POST",
+      "body": "name=DAST%20User&username=dastuser9090&email=dastuser9090%40example.com&password=P%40ssw0rd123&cpassword=P%40ssw0rd123",
+      "contentType": "form"
+    },
+    "protectedResource": {
+      "method": "GET",
+      "url": "/learn"
+    },
+    "context": "Verified session authentication using POST /login."
+  },
+  "scanPrep": {
+    "replayCommands": [
+      {
+        "container": "dvna-app-1",
+        "command": "sh -lc 'npm ls express-rate-limit express-brute express-slow-down rate-limiter-flexible helmet csurf passport-local --depth=0 || true'"
+      }
+    ],
+    "context": "No blocking runtime security controls were present in this Express/Passport app, so no rate-limit or CAPTCHA neutralization patches were required; scanner readiness was confirmed with repeated real login POSTs.\nChange: Created a persistent test user account (`dastuser`) through the app's `/register` flow to exercise the real authentication path during verification.\nChange: Inspected the running Express/MySQL app, container environment, installed packages, database schema, and application source; confirmed there are no active rate-limiting, account-lockout, IP-blocking, WAF/filtering, or server-side CAPTCHA controls to relax.\nChange: Verified scanner compatibility by sending repeated rapid POST requests to the real `/login` endpoint with both valid and invalid credentials; all requests continued to return normal auth redirects (`302 /learn` for valid creds, `302 /login` for invalid creds) with no 429s and no throttle/lockout responses."
+  }
+}
