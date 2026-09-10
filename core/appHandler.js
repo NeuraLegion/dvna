@@ -6,6 +6,18 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
+function normalizeProductSearchTerm(name) {
+	return String(name || '')
+		.trim()
+		.replace(/[\u0000-\u001f\u007f]/g, '')
+		.replace(/[<>]/g, '')
+		.slice(0, 100)
+}
+
+function setProductsPageSecurityHeaders(res) {
+	res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; font-src 'self' https://maxcdn.bootstrapcdn.com data:; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
+}
+
 module.exports.userSearch = function (req, res) {
 	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
 	db.sequelize.query(query, {
@@ -46,6 +58,7 @@ module.exports.ping = function (req, res) {
 
 module.exports.listProducts = function (req, res) {
 	db.Product.findAll().then(products => {
+		setProductsPageSecurityHeaders(res)
 		output = {
 			products: products
 		}
@@ -56,16 +69,18 @@ module.exports.listProducts = function (req, res) {
 }
 
 module.exports.productSearch = function (req, res) {
+	const searchTerm = normalizeProductSearchTerm(req.body.name)
 	db.Product.findAll({
 		where: {
 			name: {
-				[Op.like]: '%' + req.body.name + '%'
+				[Op.like]: '%' + searchTerm + '%'
 			}
 		}
 	}).then(products => {
+		setProductsPageSecurityHeaders(res)
 		output = {
 			products: products,
-			searchTerm: req.body.name
+			searchTerm: searchTerm
 		}
 		res.render('app/products', {
 			output: output
