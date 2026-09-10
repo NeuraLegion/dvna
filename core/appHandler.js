@@ -68,8 +68,12 @@ module.exports.modifyProductCsrfProtection = function (req, res, next) {
 }
 
 module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
+	var login = String(req.body.login || '')
+	var query = 'SELECT name,id FROM Users WHERE login = :login'
 	db.sequelize.query(query, {
+		replacements: {
+			login: login
+		},
 		model: db.User
 	}).then(user => {
 		if (user.length) {
