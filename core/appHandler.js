@@ -1,5 +1,6 @@
 var db = require('../models')
 var bCrypt = require('bcrypt')
+var crypto = require('crypto')
 const exec = require('child_process').exec;
 var mathjs = require('mathjs')
 var libxmljs = require("libxmljs");
@@ -16,6 +17,54 @@ function normalizeProductSearchTerm(name) {
 
 function setProductsPageSecurityHeaders(res) {
 	res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com; font-src 'self' https://maxcdn.bootstrapcdn.com data:; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
+}
+
+function generateCsrfToken() {
+	return crypto.randomBytes(32).toString('hex')
+}
+
+function getSessionCsrfToken(req) {
+	if (!req.session.csrfToken) {
+		req.session.csrfToken = generateCsrfToken()
+	}
+
+	return req.session.csrfToken
+}
+
+function tokensMatch(expectedToken, providedToken) {
+	if (typeof expectedToken !== 'string' || typeof providedToken !== 'string') {
+		return false
+	}
+
+	var expectedBuffer = Buffer.from(expectedToken)
+	var providedBuffer = Buffer.from(providedToken)
+
+	if (expectedBuffer.length !== providedBuffer.length) {
+		return false
+	}
+
+	return crypto.timingSafeEqual(expectedBuffer, providedBuffer)
+}
+
+module.exports.modifyProductCsrfProtection = function (req, res, next) {
+	var csrfToken = getSessionCsrfToken(req)
+	res.locals.csrfToken = csrfToken
+
+	if (req.method !== 'POST') {
+		return next()
+	}
+
+	if (!tokensMatch(csrfToken, req.body._csrf)) {
+		req.flash('danger', 'Invalid request')
+		return res.status(403).render('app/modifyproduct', {
+			output: {
+				product: req.body || {}
+			},
+			csrfToken: csrfToken
+		})
+	}
+
+	return next()
 }
 
 module.exports.userSearch = function (req, res) {
