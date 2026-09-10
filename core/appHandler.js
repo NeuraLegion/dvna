@@ -199,9 +199,24 @@ module.exports.userEditSubmit = function (req, res) {
 }
 
 module.exports.redirect = function (req, res) {
-	if (req.query.url) {
-		res.redirect(req.query.url)
-	} else {
+	const redirectUrl = typeof req.query.url === 'string' ? req.query.url.trim() : ''
+
+	if (!redirectUrl) {
+		res.send('invalid redirect url')
+		return
+	}
+
+	try {
+		const baseUrl = new URL(req.protocol + '://' + req.get('host'))
+		const targetUrl = new URL(redirectUrl, baseUrl)
+
+		if (!redirectUrl.startsWith('/') || redirectUrl.startsWith('//') || targetUrl.origin !== baseUrl.origin) {
+			res.send('invalid redirect url')
+			return
+		}
+
+		res.redirect(targetUrl.pathname + targetUrl.search + targetUrl.hash)
+	} catch (err) {
 		res.send('invalid redirect url')
 	}
 }
