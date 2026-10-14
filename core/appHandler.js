@@ -107,6 +107,24 @@ module.exports.modifyProductSubmit = function (req, res) {
 	if (!req.body.id || req.body.id == '') {
 		req.body.id = 0
 	}
+
+	const productInput = {
+		id: req.body.id,
+		code: typeof req.body.code === 'string' ? req.body.code.trim() : '',
+		name: typeof req.body.name === 'string' ? req.body.name.trim() : '',
+		description: typeof req.body.description === 'string' ? req.body.description.trim() : '',
+		tags: typeof req.body.tags === 'string' ? req.body.tags.trim() : ''
+	}
+
+	if (!/^[A-Za-z0-9_-]{1,64}$/.test(productInput.code)) {
+		req.flash('danger', 'Product code may only contain letters, numbers, underscores and hyphens')
+		return res.render('app/modifyproduct', {
+			output: {
+				product: productInput
+			}
+		})
+	}
+
 	db.Product.find({
 		where: {
 			'id': req.body.id
@@ -115,10 +133,10 @@ module.exports.modifyProductSubmit = function (req, res) {
 		if (!product) {
 			product = new db.Product()
 		}
-		product.code = req.body.code
-		product.name = req.body.name
-		product.description = req.body.description
-		product.tags = req.body.tags
+		product.code = productInput.code
+		product.name = productInput.name
+		product.description = productInput.description
+		product.tags = productInput.tags
 		product.save().then(p => {
 			if (p) {
 				req.flash('success', 'Product added/modified!')
