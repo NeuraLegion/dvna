@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "generatedAt": "2026-10-14T15:25:02.258Z",
+  "instructionHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "startup": {
+    "command": "docker compose up -d --build",
+    "port": 9090,
+    "healthCheckPath": "/login",
+    "context": "Started the Express/MySQL app via the repo's docker-compose stack after adding vars.env and pinning Dockerfile-dev to nodemon@1.18.11. First attempt failed because the unpinned latest nodemon used syntax unsupported by node:carbon/node 8; second attempt succeeded. Verified with HTTP 200 from /login and app logs showing Sequelize connected and synced tables."
+  },
+  "auth": {
+    "authObjectId": "uUP1aTPyTnZrCAPCX1Fvbf",
+    "registration": {
+      "baseUrl": "http://localhost:9090",
+      "endpoint": "/register",
+      "method": "POST",
+      "body": "name=DAST%20User&username=dastuser1&email=dastuser1%40example.com&password=Passw0rd!&cpassword=Passw0rd!",
+      "contentType": "form"
+    },
+    "protectedResource": {
+      "method": "GET",
+      "url": "/app/admin/usersapi"
+    },
+    "context": "Verified session authentication using POST /login.\n[session-coexistence] Session coexistence inconclusive: AO response rules are not supported by the session probe. Session independence could not be verified; no conflict was confirmed. Using parallel scans."
+  },
+  "scanPrep": {
+    "context": "Summary: Inspected runtime env/DB and the Express codebase, confirmed there are no implemented rate limits, lockouts, CAPTCHA checks, CSRF middleware, IP filters, or other scanner-blocking controls, and verified the real POST /login path accepts 6 rapid successful logins without throttling.; 2FA: Confirmed this DVNA app does not implement or enforce 2FA/MFA; the test user is not blocked by 2FA and can log in and access a protected endpoint successfully.\nChange: No 2FA/MFA/TOTP/OTP enforcement was present in the codebase or Users schema, so no 2FA-specific code/config/database changes were needed.\nChange: Reset the existing test user `dastscan` password to a known value (`DASTscan123!`) using the app's built-in reset flow so authentication could be verified end-to-end.\nRecovery guidance (security controls): Current app behavior is already DAST-friendly. Runtime checks performed: `docker compose ps`, inspect app env inside the container (`docker exec dvna-app-1 sh -lc 'env | sort'`), inspect DB schema (`docker exec dvna-mysql-db-1 sh -lc 'mysql -udvna -ppassw0rd -D dvna -e \"SHOW TABLES; SHOW CREATE TABLE Users\\\\G\"'`), and search the app code under `server.js`, `core/`, `routes/`, and `config/` for limiter/CAPTCHA keywords. Verification account present in DB: `dastscan / ScanPass123!`. Re-verify before scanning with repeated real auth POSTs such as `curl -i -X POST http://localhost:9090/login -H 'Content-Type: application/x-www-form-urlencoded' --data 'username=dastscan&password=ScanPass123!'` run 5+ times; any 429 or throttle text would indicate a new control was introduced. If future source changes add in-memory middleware, restart with the verified command narrowed to the app service: `docker compose up -d --build app`.\nRecovery guidance (2FA/MFA): This app uses simple Passport local auth only. Relevant checks: search the repo for `twoFactor|2fa|mfa|totp|otp|authenticator|verification`, inspect `models/user.js` and `core/passport.js`, and query MySQL with `SHOW CREATE TABLE Users; SELECT id,login,role FROM Users;`. If you need to re-verify access, log in as `dastscan` and confirm `/app/admin/usersapi` returns HTTP 200 JSON rather than a redirect or 401/403."
+  }
+}
